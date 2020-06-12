@@ -16,7 +16,7 @@ with open(req_path, "r") as f:
 
 setup(
     name='pyqmrlab',
-    python_requires='>=3.7',
+    python_requires='>=3.6',
     version=pyqmrlab.__version__,
     description='Python package for Quantitative MRI',
     long_description=long_description,
