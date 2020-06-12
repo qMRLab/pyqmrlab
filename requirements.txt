@@ -1,5 +1,5 @@
 numpy
 scipy
 matplotlib
-pytest>=4.6
-pytest-cov
+pytest==4.6.3
+pytest-cov==2.5.1
