@@ -2,4 +2,8 @@ numpy
 scipy
 matplotlib
 pytest==4.6.3
+coverage==4.5.4
 pytest-cov==2.5.1
+httplib2
+tqdm
+nibabel
