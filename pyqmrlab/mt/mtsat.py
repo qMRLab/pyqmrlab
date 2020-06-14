@@ -18,7 +18,7 @@ class mtsat(Abstract):
         pass
 
         if params == None:
-            self.params = params = {
+            self.params = {
                 "MTw": {"FA": 6, "TR": 0.028},
                 "T1w": {"FA": 20, "TR": 0.018},
                 "PDw": {"FA": 6, "TR": 0.028},
