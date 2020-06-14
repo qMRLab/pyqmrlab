@@ -6,13 +6,16 @@ import scipy.io as sio
 import pyqmrlab.utils as utils
 from pathlib import Path
 import nibabel as nib
+from pyqmrlab.abstract import Abstract
 
 np.seterr(divide="ignore", invalid="ignore")
 
 
-class mtsat:
+class mtsat(Abstract):
+    data_url = "https://osf.io/c5wdb/download?version=3"
+
     def __init__(self, params=None):
-        self.data_url = "https://osf.io/c5wdb/download?version=3"
+        pass
 
         if params == None:
             self.params = params = {
@@ -21,35 +24,17 @@ class mtsat:
                 "PDw": {"FA": 6, "TR": 0.028},
             }
 
-    def download(self, folder=None):
-        if folder == None:
-            utils.download_data(self.data_url)
-        else:
-            utils.download_data(self.data_url, folder)
-
     def load(self, MTw, PDw, T1w, Mask=None):
         args = locals()
-        for key, value in args.items():
-            if key != "self" and value != None:
-                filepath = Path(value)
-                if ".mat" in filepath.suffixes:
-                    matDict = sio.loadmat(filepath)
-                    img = matDict[key]
-                    setattr(self, key, img)
-                if ".nii" in filepath.suffixes:
-                    img = nib.load(filepath)
-                    setattr(self, key, img.get_fdata())
+        super().load(args)
 
     def save(self, filenames=None):
 
         if filenames == None:
             filename = ["MTsat.nii.gz", "T1.nii.gz"]
-
-        img = nib.Nifti1Image(self.MTsat, affine=None, header=None)
-        nib.save(img, filenames[0])
-
-        img = nib.Nifti1Image(self.T1, affine=None, header=None)
-        nib.save(img, filenames[1])
+        
+        super().save(self.MTsat, filenames[0])
+        super().save(self.T1, filenames[1])
 
     def fit(self):
 
