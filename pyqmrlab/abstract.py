@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 from pathlib import Path
 import nibabel as nib
 import scipy.io as sio
+import numpy as np
 
 import pyqmrlab.utils as utils
 
@@ -45,3 +46,18 @@ class Abstract(object, metaclass=ABCMeta):
             utils.download_data(self.data_url)
         else:
             utils.download_data(self.data_url, folder)
+
+    def apply_mask(self, **kwargs):
+        if hasattr(self, "Mask"):
+            Mask = self.Mask
+            Mask[np.isnan(Mask)] = 0
+
+            Mask = Mask.astype(bool)
+            for key, value in kwargs.items():
+                value = value * Mask
+                value[np.isnan(value)] = 0
+                setattr(self, key, value)
+        else:
+            for key, value in kwargs.items():
+                value[np.isnan(value)] = 0
+                setattr(self, key, value)

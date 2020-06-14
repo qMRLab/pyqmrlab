@@ -59,15 +59,7 @@ class mtsat(Abstract):
         )
         self.T1 = 1 / R1
 
-        if hasattr(self, "Mask"):
-            self.Mask[np.isnan(self.Mask)] = 0
-
-            self.Mask = self.Mask.astype(bool)
-            self.MTsat = self.MTsat * self.Mask
-            self.T1 = self.T1 * self.Mask
-
-        self.MTsat[np.isnan(self.MTsat)] = 0
-        self.T1[np.isnan(self.T1)] = 0
+        self.apply_mask(MTsat = self.MTsat, T1 = self.T1)
 
     def __R1(self, T1w, PDw, FA_T1w, TR_T1w, FA_PDw, TR_PDw):
 

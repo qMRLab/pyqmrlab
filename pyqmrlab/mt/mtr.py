@@ -31,10 +31,4 @@ class mtr(Abstract):
     def fit(self):
         self.MTR = (self.MToff - self.MTon) / self.MToff * 100
 
-        if hasattr(self, "Mask"):
-            self.Mask[np.isnan(self.Mask)] = 0
-
-            self.Mask = self.Mask.astype(bool)
-            self.MTR = self.MTR * self.Mask
-
-        self.MTR[np.isnan(self.MTR)] = 0
+        self.apply_mask(MTR = self.MTR)

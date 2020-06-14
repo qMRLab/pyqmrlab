@@ -35,10 +35,4 @@ class double_angle(Abstract):
 
         self.B1 = np.abs(np.arccos(img2/(2*img1))/(FA))
 
-        if hasattr(self, "Mask"):
-            self.Mask[np.isnan(self.Mask)] = 0
-
-            self.Mask = self.Mask.astype(bool)
-            self.B1 = self.B1 * self.Mask
-
-        self.B1[np.isnan(self.B1)] = 0
+        self.apply_mask(B1 = self.B1)
