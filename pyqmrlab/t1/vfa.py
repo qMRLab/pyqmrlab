@@ -2,7 +2,6 @@
 
 # Scientific modules imports
 import numpy as np
-from sklearn.linear_model import LinearRegression
 import pyqmrlab.utils as utils
 from pyqmrlab.abstract import Abstract
 
