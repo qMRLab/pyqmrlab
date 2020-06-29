@@ -7,3 +7,4 @@ pytest-cov==2.5.1
 httplib2
 tqdm
 nibabel
+requests

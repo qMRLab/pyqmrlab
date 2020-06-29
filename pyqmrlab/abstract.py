@@ -50,10 +50,15 @@ class Abstract(object, metaclass=ABCMeta):
     def apply_mask(self, **kwargs):
         if hasattr(self, "Mask"):
             Mask = self.Mask
+
             Mask[np.isnan(Mask)] = 0
 
             Mask = Mask.astype(bool)
             for key, value in kwargs.items():
+
+                if len(Mask.shape)==2 and len(value.shape)==3:
+                    Mask = np.expand_dims(Mask, 2)
+
                 value = value * Mask
                 value[np.isnan(value)] = 0
                 setattr(self, key, value)
