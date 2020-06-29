@@ -31,4 +31,4 @@ class mtr(Abstract):
     def fit(self):
         self.MTR = (self.MToff - self.MTon) / self.MToff * 100
 
-        self.apply_mask(MTR = self.MTR)
+        self.apply_mask(MTR=self.MTR)

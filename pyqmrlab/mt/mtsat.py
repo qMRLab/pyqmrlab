@@ -32,7 +32,7 @@ class mtsat(Abstract):
 
         if filenames == None:
             filename = ["MTsat.nii.gz", "T1.nii.gz"]
-        
+
         super().save(self.MTsat, filenames[0])
         super().save(self.T1, filenames[1])
 
@@ -59,7 +59,7 @@ class mtsat(Abstract):
         )
         self.T1 = 1 / R1
 
-        self.apply_mask(MTsat = self.MTsat, T1 = self.T1)
+        self.apply_mask(MTsat=self.MTsat, T1=self.T1)
 
     def __R1(self, T1w, PDw, FA_T1w, TR_T1w, FA_PDw, TR_PDw):
 

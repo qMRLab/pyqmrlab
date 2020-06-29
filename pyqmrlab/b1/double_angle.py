@@ -13,9 +13,7 @@ class double_angle(Abstract):
 
     def __init__(self, params=None):
         if params == None:
-            self.params = {
-                "FA": 60
-            }
+            self.params = {"FA": 60}
 
     def load(self, img1, img2, Mask=None):
         args = locals()
@@ -33,6 +31,6 @@ class double_angle(Abstract):
         img2 = self.img2
         FA = np.deg2rad(self.params["FA"])
 
-        self.B1 = np.abs(np.arccos(img2/(2*img1))/(FA))
+        self.B1 = np.abs(np.arccos(img2 / (2 * img1)) / (FA))
 
-        self.apply_mask(B1 = self.B1)
+        self.apply_mask(B1=self.B1)

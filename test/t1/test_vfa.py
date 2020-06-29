@@ -41,7 +41,7 @@ class TestCore(object):
         expected_files = [
             self.tmpPath / "vfa_t1/VFAData.nii.gz",
             self.tmpPath / "vfa_t1/B1map.nii.gz",
-            self.tmpPath / "vfa_t1/Mask.nii.gz"
+            self.tmpPath / "vfa_t1/Mask.nii.gz",
         ]
         assert expected_folder.is_dir()
         for file in expected_files:
@@ -62,7 +62,7 @@ class TestCore(object):
         assert isinstance(vfa_obj.Mask, np.ndarray)
 
         expected_shape_data = (128, 128, 1, 2)
-        expected_shape_b1= (128, 128)
+        expected_shape_b1 = (128, 128)
         expected_shape_mask = (128, 128)
 
         assert vfa_obj.VFAData.shape == expected_shape_data
@@ -72,14 +72,10 @@ class TestCore(object):
     # --------------simulate tests-------------- #
     def test_simulate(self):
         vfa_obj = vfa()
-        params = {
-            'FA': [3, 20],
-            'TR': 0.015,
-            'T1': 0.850
-        }
+        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
 
-        Mz = vfa.simulate(params, 'analytical')
-        
+        Mz = vfa.simulate(params, "analytical")
+
         expected_value = np.array([0.04859526, 0.07795592])
         actual_value = Mz
 
@@ -88,56 +84,47 @@ class TestCore(object):
     # --------------fit tests-------------- #
     def test_fit_simulate_1vox(self):
         vfa_obj = vfa()
-        params = {
-            'FA': [3, 20],
-            'TR': 0.015,
-            'T1': 0.850
-        }
+        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
 
-        Mz = vfa.simulate(params, 'analytical')
+        Mz = vfa.simulate(params, "analytical")
 
-        vfa_obj.VFAData = np.ones((1,1,1,2))
+        vfa_obj.VFAData = np.ones((1, 1, 1, 2))
 
-        vfa_obj.VFAData[0,0,0,:] = Mz
+        vfa_obj.VFAData[0, 0, 0, :] = Mz
 
-        vfa_obj.B1map = np.ones((1,1))
-        vfa_obj.Mask = np.ones((1,1))
+        vfa_obj.B1map = np.ones((1, 1))
+        vfa_obj.Mask = np.ones((1, 1))
 
         vfa_obj.fit()
-        
-        expected_value = params['T1']
+
+        expected_value = params["T1"]
         actual_value = vfa_obj.T1
 
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
     def test_fit_simulate_3vox(self):
         vfa_obj = vfa()
-        params = {
-            'FA': [3, 20],
-            'TR': 0.015,
-            'T1': 0.850
-        }
-        vfa_obj.VFAData = np.ones((3,1,1,2))
-        vfa_obj.Mask = np.ones((3,1))
-        vfa_obj.B1map = np.ones((3,1))
-        vfa_obj.B1map[1,0] = 0.95
-        vfa_obj.B1map[2,0] = 1.05
+        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
+        vfa_obj.VFAData = np.ones((3, 1, 1, 2))
+        vfa_obj.Mask = np.ones((3, 1))
+        vfa_obj.B1map = np.ones((3, 1))
+        vfa_obj.B1map[1, 0] = 0.95
+        vfa_obj.B1map[2, 0] = 1.05
 
+        Mz = vfa.simulate(params, "analytical")
+        vfa_obj.VFAData[0, 0, 0, :] = Mz
 
-        Mz = vfa.simulate(params, 'analytical')
-        vfa_obj.VFAData[0,0,0,:] = Mz
-        
-        params['FA'] = np.array([3, 20])*vfa_obj.B1map[1,0]
-        Mz = vfa.simulate(params, 'analytical')
-        vfa_obj.VFAData[1,0,0,:] = Mz
+        params["FA"] = np.array([3, 20]) * vfa_obj.B1map[1, 0]
+        Mz = vfa.simulate(params, "analytical")
+        vfa_obj.VFAData[1, 0, 0, :] = Mz
 
-        params['FA'] = np.array([3, 20])*vfa_obj.B1map[2,0]
-        Mz = vfa.simulate(params, 'analytical')
-        vfa_obj.VFAData[2,0,0,:] = Mz
+        params["FA"] = np.array([3, 20]) * vfa_obj.B1map[2, 0]
+        Mz = vfa.simulate(params, "analytical")
+        vfa_obj.VFAData[2, 0, 0, :] = Mz
 
         vfa_obj.fit()
-        
-        expected_value = np.array([params['T1'], params['T1'], params['T1']])
+
+        expected_value = np.array([params["T1"], params["T1"], params["T1"]])
         actual_value = vfa_obj.T1
 
         assert np.allclose(actual_value, expected_value)

@@ -9,8 +9,8 @@ import numpy as np
 
 import pyqmrlab.utils as utils
 
-class Abstract(object, metaclass=ABCMeta):
 
+class Abstract(object, metaclass=ABCMeta):
     @property
     @classmethod
     @abstractmethod
@@ -56,7 +56,7 @@ class Abstract(object, metaclass=ABCMeta):
             Mask = Mask.astype(bool)
             for key, value in kwargs.items():
 
-                if len(Mask.shape)==2 and len(value.shape)==3:
+                if len(Mask.shape) == 2 and len(value.shape) == 3:
                     Mask = np.expand_dims(Mask, 2)
 
                 value = value * Mask

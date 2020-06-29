@@ -67,7 +67,7 @@ class TestCore(object):
         img1 = self.tmpPath / "b1_dam_multi-slice/epseg_60deg.nii.gz"
         img2 = self.tmpPath / "b1_dam_multi-slice/epseg_120deg.nii.gz"
 
-        double_angle_obj.load(img1,img2)
+        double_angle_obj.load(img1, img2)
 
         double_angle_obj.fit()
 
