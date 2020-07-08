@@ -33,4 +33,4 @@ class double_angle(Abstract):
 
         self.B1 = np.abs(np.arccos(img2 / (2 * img1)) / (FA))
 
-        self.apply_mask(B1=self.B1)
+        self._apply_mask(B1=self.B1)

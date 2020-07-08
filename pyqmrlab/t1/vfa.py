@@ -65,8 +65,8 @@ class vfa(Abstract):
         self.M0 = np.reshape(linM0, (dims[0], dims[1], dims[2]))
 
         # Apply masks and remove NaNs
-        self.apply_mask(T1=self.T1)
-        self.apply_mask(M0=self.M0)
+        self._apply_mask(T1=self.T1)
+        self._apply_mask(M0=self.M0)
 
     @staticmethod
     def simulate(params, type="analytical"):
