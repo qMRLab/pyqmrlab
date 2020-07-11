@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from pyqmrlab.mt import mtr
+from pyqmrlab.mt import MTR
 import httplib2
 import shutil
 import numpy as np
@@ -20,7 +20,7 @@ class TestCore(object):
     # --------------attribute tests-------------- #
     def test_data_url_link_exists(self):
 
-        mtr_obj = mtr()
+        mtr_obj = MTR()
 
         h = httplib2.Http()
 
@@ -32,7 +32,7 @@ class TestCore(object):
 
     # --------------download tests-------------- #
     def test_download(self):
-        mtr_obj = mtr()
+        mtr_obj = MTR()
         mtr_obj.download(self.tmpPath)
 
         expected_folder = self.tmpPath / "mt_ratio"
@@ -47,7 +47,7 @@ class TestCore(object):
 
     # --------------load tests-------------- #
     def test_load(self):
-        mtr_obj = mtr()
+        mtr_obj = MTR()
 
         MTon = self.tmpPath / "mt_ratio/MTon.mat"
         MToff = self.tmpPath / "mt_ratio/MToff.mat"
@@ -66,7 +66,7 @@ class TestCore(object):
 
     # --------------fit tests-------------- #
     def test_fit(self):
-        mtr_obj = mtr()
+        mtr_obj = MTR()
 
         MTon = self.tmpPath / "mt_ratio/MTon.mat"
         MToff = self.tmpPath / "mt_ratio/MToff.mat"
@@ -77,13 +77,13 @@ class TestCore(object):
         mtr_obj.fit()
 
         expected_mean_value = 43.183624
-        actual_mean_value = np.mean(mtr_obj.MTR[mtr_obj.MTR != 0])
+        actual_mean_value = np.mean(mtr_obj.mtr[mtr_obj.mtr != 0])
 
         assert actual_mean_value == pytest.approx(expected_mean_value)
 
     # --------------save tests-------------- #
     def test_save(self):
-        mtr_obj = mtr()
+        mtr_obj = MTR()
 
         MTon = self.tmpPath / "mt_ratio/MTon.mat"
         MToff = self.tmpPath / "mt_ratio/MToff.mat"

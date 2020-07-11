@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from pyqmrlab.b1 import double_angle
+from pyqmrlab.b1 import DoubleAngle
 import httplib2
 import shutil
 import numpy as np
@@ -20,7 +20,7 @@ class TestCore(object):
     # --------------attribute tests-------------- #
     def test_data_url_link_exists(self):
 
-        double_angle_obj = double_angle()
+        double_angle_obj = DoubleAngle()
 
         h = httplib2.Http()
 
@@ -32,7 +32,7 @@ class TestCore(object):
 
     # --------------download tests-------------- #
     def test_download(self):
-        double_angle_obj = double_angle()
+        double_angle_obj = DoubleAngle()
         double_angle_obj.download(self.tmpPath)
 
         expected_folder = self.tmpPath / "b1_dam_multi-slice"
@@ -46,7 +46,7 @@ class TestCore(object):
 
     # --------------load tests-------------- #
     def test_load(self):
-        double_angle_obj = double_angle()
+        double_angle_obj = DoubleAngle()
 
         img1 = self.tmpPath / "b1_dam_multi-slice/epseg_60deg.nii.gz"
         img2 = self.tmpPath / "b1_dam_multi-slice/epseg_120deg.nii.gz"
@@ -62,7 +62,7 @@ class TestCore(object):
 
     # --------------fit tests-------------- #
     def test_fit(self):
-        double_angle_obj = double_angle()
+        double_angle_obj = DoubleAngle()
 
         img1 = self.tmpPath / "b1_dam_multi-slice/epseg_60deg.nii.gz"
         img2 = self.tmpPath / "b1_dam_multi-slice/epseg_120deg.nii.gz"
@@ -78,7 +78,7 @@ class TestCore(object):
 
     # --------------save tests-------------- #
     def test_save(self):
-        double_angle_obj = double_angle()
+        double_angle_obj = DoubleAngle()
 
         img1 = self.tmpPath / "b1_dam_multi-slice/epseg_60deg.nii.gz"
         img2 = self.tmpPath / "b1_dam_multi-slice/epseg_120deg.nii.gz"

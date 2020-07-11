@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from pyqmrlab.t1 import vfa
+from pyqmrlab.t1 import VFA
 import httplib2
 import shutil
 import numpy as np
@@ -22,7 +22,7 @@ class TestCore(object):
     # --------------attribute tests-------------- #
     def test_data_url_link_exists(self):
 
-        vfa_obj = vfa()
+        vfa_obj = VFA()
 
         h = httplib2.Http()
 
@@ -34,7 +34,7 @@ class TestCore(object):
 
     # --------------download tests-------------- #
     def test_download(self):
-        vfa_obj = vfa()
+        vfa_obj = VFA()
         vfa_obj.download(self.tmpPath)
 
         expected_folder = self.tmpPath / "vfa_t1"
@@ -49,7 +49,7 @@ class TestCore(object):
 
     # --------------load tests-------------- #
     def test_load(self):
-        vfa_obj = vfa()
+        vfa_obj = VFA()
 
         VFAData = self.tmpPath / "vfa_t1/VFAData.nii.gz"
         B1map = self.tmpPath / "vfa_t1/B1map.nii.gz"
@@ -71,10 +71,10 @@ class TestCore(object):
 
     # --------------simulate tests-------------- #
     def test_simulate(self):
-        vfa_obj = vfa()
-        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
+        vfa_obj = VFA()
+        params = {"flip_angle": [3, 20], "repetition_time": 0.015, "T1": 0.850}
 
-        Mz = vfa.simulate(params, "analytical")
+        Mz = VFA.simulate(params, "analytical")
 
         expected_value = np.array([0.04859526, 0.07795592])
         actual_value = Mz
@@ -83,10 +83,10 @@ class TestCore(object):
 
     # --------------fit tests-------------- #
     def test_fit_simulate_1vox(self):
-        vfa_obj = vfa()
-        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
+        vfa_obj = VFA()
+        params = {"flip_angle": [3, 20], "repetition_time": 0.015, "T1": 0.850}
 
-        Mz = vfa.simulate(params, "analytical")
+        Mz = VFA.simulate(params, "analytical")
 
         vfa_obj.VFAData = np.ones((1, 1, 1, 2))
 
@@ -103,23 +103,23 @@ class TestCore(object):
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
     def test_fit_simulate_3vox(self):
-        vfa_obj = vfa()
-        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
+        vfa_obj = VFA()
+        params = {"flip_angle": [3, 20], "repetition_time": 0.015, "T1": 0.850}
         vfa_obj.VFAData = np.ones((3, 1, 1, 2))
         vfa_obj.Mask = np.ones((3, 1))
         vfa_obj.B1map = np.ones((3, 1))
         vfa_obj.B1map[1, 0] = 0.95
         vfa_obj.B1map[2, 0] = 1.05
 
-        Mz = vfa.simulate(params, "analytical")
+        Mz = VFA.simulate(params, "analytical")
         vfa_obj.VFAData[0, 0, 0, :] = Mz
 
-        params["FA"] = np.array([3, 20]) * vfa_obj.B1map[1, 0]
-        Mz = vfa.simulate(params, "analytical")
+        params["flip_angle"] = np.array([3, 20]) * vfa_obj.B1map[1, 0]
+        Mz = VFA.simulate(params, "analytical")
         vfa_obj.VFAData[1, 0, 0, :] = Mz
 
-        params["FA"] = np.array([3, 20]) * vfa_obj.B1map[2, 0]
-        Mz = vfa.simulate(params, "analytical")
+        params["flip_angle"] = np.array([3, 20]) * vfa_obj.B1map[2, 0]
+        Mz = VFA.simulate(params, "analytical")
         vfa_obj.VFAData[2, 0, 0, :] = Mz
 
         vfa_obj.fit()
@@ -130,7 +130,7 @@ class TestCore(object):
         assert np.allclose(actual_value, expected_value)
 
     def test_fit(self):
-        vfa_obj = vfa()
+        vfa_obj = VFA()
 
         VFAData = self.tmpPath / "vfa_t1/VFAData.nii.gz"
         B1map = self.tmpPath / "vfa_t1/B1map.nii.gz"
@@ -147,7 +147,7 @@ class TestCore(object):
 
     # --------------save tests-------------- #
     def test_save(self):
-        vfa_obj = vfa()
+        vfa_obj = VFA()
 
         VFAData = self.tmpPath / "vfa_t1/VFAData.nii.gz"
         B1map = self.tmpPath / "vfa_t1/B1map.nii.gz"

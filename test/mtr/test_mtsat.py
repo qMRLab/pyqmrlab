@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from pyqmrlab.mt import mtsat
+from pyqmrlab.mt import MTsat
 import httplib2
 import shutil
 import numpy as np
@@ -20,7 +20,7 @@ class TestCore(object):
     # --------------attribute tests-------------- #
     def test_data_url_link_exists(self):
 
-        mtsat_obj = mtsat()
+        mtsat_obj = MTsat()
 
         h = httplib2.Http()
 
@@ -32,7 +32,7 @@ class TestCore(object):
 
     # --------------download tests-------------- #
     def test_download(self):
-        mtsat_obj = mtsat()
+        mtsat_obj = MTsat()
         mtsat_obj.download(self.tmpPath)
 
         expected_folder = self.tmpPath / "mt_sat"
@@ -47,7 +47,7 @@ class TestCore(object):
 
     # --------------load tests-------------- #
     def test_load(self):
-        mtsat_obj = mtsat()
+        mtsat_obj = MTsat()
 
         MTw = self.tmpPath / "mt_sat/MTw.nii.gz"
         PDw = self.tmpPath / "mt_sat/PDw.nii.gz"
@@ -66,7 +66,7 @@ class TestCore(object):
 
     # --------------fit tests-------------- #
     def test_fit(self):
-        mtsat_obj = mtsat()
+        mtsat_obj = MTsat()
 
         MTw = self.tmpPath / "mt_sat/MTw.nii.gz"
         PDw = self.tmpPath / "mt_sat/PDw.nii.gz"
@@ -83,7 +83,7 @@ class TestCore(object):
 
     # --------------save tests-------------- #
     def test_save(self):
-        mtsat_obj = mtsat()
+        mtsat_obj = MTsat()
 
         MTw = self.tmpPath / "mt_sat/MTw.nii.gz"
         PDw = self.tmpPath / "mt_sat/PDw.nii.gz"

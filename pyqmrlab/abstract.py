@@ -47,7 +47,7 @@ class Abstract(object, metaclass=ABCMeta):
         else:
             utils.download_data(self.data_url, folder)
 
-    def apply_mask(self, **kwargs):
+    def _apply_mask(self, **kwargs):
         if hasattr(self, "Mask"):
             Mask = self.Mask
 
