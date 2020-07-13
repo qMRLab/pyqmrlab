@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from pyqmrlab.t1 import inversion_recovery
+from pyqmrlab.t1 import InversionRecovery
 import httplib2
 import shutil
 import numpy as np
@@ -17,12 +17,11 @@ class TestCore(object):
     def teardown_class(cls):
         tmpPath = Path("tmp/")
         shutil.rmtree(tmpPath)
-        pass
 
     # --------------attribute tests-------------- #
     def test_data_url_link_exists(self):
 
-        ir_obj = inversion_recovery()
+        ir_obj = InversionRecovery()
 
         h = httplib2.Http()
 
@@ -34,7 +33,7 @@ class TestCore(object):
 
     # --------------download tests-------------- #
     def test_download(self):
-        ir_obj = inversion_recovery()
+        ir_obj = InversionRecovery()
         ir_obj.download(self.tmpPath)
 
         expected_folder = self.tmpPath / "inversion_recovery"
@@ -48,7 +47,7 @@ class TestCore(object):
 
     # --------------load tests-------------- #
     def test_load(self):
-        ir_obj = inversion_recovery()
+        ir_obj = InversionRecovery()
 
         IRData = self.tmpPath / "inversion_recovery/IRData.mat"
         Mask = self.tmpPath / "inversion_recovery/Mask.mat"
@@ -66,28 +65,40 @@ class TestCore(object):
 
     # --------------simulate tests-------------- #
     def test_simulate(self):
-        ir_obj = inversion_recovery()
-        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
+        ir_obj = InversionRecovery()
+        params = {
+            "excitation_flip_angle": 90,
+            "inversion_flip_angle": 180,
+            "inversion_times": [0.050, 0.400, 1.100, 2.500],
+            "repetition_time": 2.550,
+            "T1": 0.850,
+        }
 
-        Mz = vfa.simulate(params, "analytical")
+        Mz = InversionRecovery.simulate(params, "analytical")
 
-        expected_value = np.array([0.04859526, 0.07795592])
+        expected_value = np.array([-0.83595922, -0.19948239, 0.50150778, 0.94417993])
         actual_value = Mz
 
         assert np.allclose(actual_value, expected_value)
 
     # --------------fit tests-------------- #
     def test_fit_simulate_1vox(self):
-        ir_obj = inversion_recovery()
-        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
+        params = {
+            "excitation_flip_angle": 90,
+            "inversion_flip_angle": 180,
+            "inversion_times": [0.050, 0.400, 1.100, 2.500],
+            "repetition_time": 2.550,
+            "T1": 0.850,
+        }
 
-        Mz = vfa.simulate(params, "analytical")
+        ir_obj = InversionRecovery(params)
 
-        ir_obj.VFAData = np.ones((1, 1, 1, 2))
+        Mz = InversionRecovery.simulate(params, "analytical")
 
-        ir_obj.VFAData[0, 0, 0, :] = Mz
+        ir_obj.IRData = np.ones((1, 1, 1, len(params["inversion_times"])))
 
-        ir_obj.B1map = np.ones((1, 1))
+        ir_obj.IRData[0, 0, 0, :] = np.abs(Mz)
+
         ir_obj.Mask = np.ones((1, 1))
 
         ir_obj.fit()
@@ -98,24 +109,19 @@ class TestCore(object):
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
     def test_fit_simulate_3vox(self):
-        ir_obj = inversion_recovery()
-        params = {"FA": [3, 20], "TR": 0.015, "T1": 0.850}
-        ir_obj.VFAData = np.ones((3, 1, 1, 2))
+        ir_obj = InversionRecovery()
+        params = {"FA": [3, 20], "repetition_time": 0.015, "T1": 0.850}
+        ir_obj.IRData = np.ones((3, 1, 1, 2))
         ir_obj.Mask = np.ones((3, 1))
-        ir_obj.B1map = np.ones((3, 1))
-        ir_obj.B1map[1, 0] = 0.95
-        ir_obj.B1map[2, 0] = 1.05
 
-        Mz = vfa.simulate(params, "analytical")
-        ir_obj.VFAData[0, 0, 0, :] = Mz
+        Mz = InversionRecovery.simulate(params, "analytical")
+        ir_obj.IRData[0, 0, 0, :] = Mz
 
-        params["FA"] = np.array([3, 20]) * ir_obj.B1map[1, 0]
-        Mz = vfa.simulate(params, "analytical")
-        ir_obj.VFAData[1, 0, 0, :] = Mz
+        Mz = InversionRecovery.simulate(params, "analytical")
+        ir_obj.IRData[1, 0, 0, :] = Mz
 
-        params["FA"] = np.array([3, 20]) * ir_obj.B1map[2, 0]
-        Mz = vfa.simulate(params, "analytical")
-        ir_obj.VFAData[2, 0, 0, :] = Mz
+        Mz = InversionRecovery.simulate(params, "analytical")
+        ir_obj.IRData[2, 0, 0, :] = Mz
 
         ir_obj.fit()
 
@@ -125,13 +131,12 @@ class TestCore(object):
         assert np.allclose(actual_value, expected_value)
 
     def test_fit(self):
-        ir_obj = inversion_recovery()
+        ir_obj = InversionRecovery()
 
-        VFAData = self.tmpPath / "vfa_t1/VFAData.nii.gz"
-        B1map = self.tmpPath / "vfa_t1/B1map.nii.gz"
-        Mask = self.tmpPath / "vfa_t1/Mask.nii.gz"
+        IRData = self.tmpPath / "inversion_recovery/IRData.mat"
+        Mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
-        ir_obj.load(VFAData, B1map, Mask)
+        ir_obj.load(IRData, Mask)
 
         ir_obj.fit()
 
@@ -142,13 +147,12 @@ class TestCore(object):
 
     # --------------save tests-------------- #
     def test_save(self):
-        ir_obj = inversion_recovery()
+        ir_obj = InversionRecovery()
 
-        VFAData = self.tmpPath / "vfa_t1/VFAData.nii.gz"
-        B1map = self.tmpPath / "vfa_t1/B1map.nii.gz"
-        Mask = self.tmpPath / "vfa_t1/Mask.nii.gz"
+        IRData = self.tmpPath / "inversion_recovery/IRData.mat"
+        Mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
-        ir_obj.load(VFAData, B1map, Mask)
+        ir_obj.load(IRData, Mask)
 
         ir_obj.fit()
 

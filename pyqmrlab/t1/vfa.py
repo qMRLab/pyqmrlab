@@ -46,6 +46,7 @@ class VFA(Abstract):
                 measurements. Measurement keys: flip_angle (degrees), 
                 repetition_time (seconds).
     """
+
     data_url = "https://osf.io/7wcvh/download?version=1"
 
     def __init__(self, params=None):
@@ -136,7 +137,7 @@ class VFA(Abstract):
             Mz: numpy array of the longitudinal magnetization for each flip
                 angle measurement.
         """
-        if type is 'analytical':
+        if type is "analytical":
             try:
                 repetition_time = params["repetition_time"]  # seconds
                 flip_angle = np.array(np.deg2rad(params["flip_angle"]))
@@ -152,7 +153,10 @@ class VFA(Abstract):
                     T1 = 0.850  # ms
                 Mz = (
                     constant
-                    * ((1 - np.exp(-repetition_time / T1)) / (1 - np.cos(flip_angle) * np.exp(-repetition_time / T1)))
+                    * (
+                        (1 - np.exp(-repetition_time / T1))
+                        / (1 - np.cos(flip_angle) * np.exp(-repetition_time / T1))
+                    )
                     * np.sin(flip_angle)
                 )
                 return Mz
