@@ -109,24 +109,35 @@ class TestCore(object):
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
     def test_fit_simulate_3vox(self):
-        ir_obj = InversionRecovery()
-        params = {"FA": [3, 20], "repetition_time": 0.015, "T1": 0.850}
-        ir_obj.IRData = np.ones((3, 1, 1, 2))
+
+        T1_arr = [0.850, 1.1, 0.53]
+        params = {
+            "excitation_flip_angle": 90,
+            "inversion_flip_angle": 180,
+            "inversion_times": [0.050, 0.400, 1.100, 2.500],
+            "repetition_time": 2.550,
+            "T1": T1_arr[0],
+        }
+        ir_obj = InversionRecovery(params)
+
+        ir_obj.IRData = np.zeros((3, 1, 1, 4))
         ir_obj.Mask = np.ones((3, 1))
 
         Mz = InversionRecovery.simulate(params, "analytical")
-        ir_obj.IRData[0, 0, 0, :] = Mz
+        ir_obj.IRData[0, 0, 0, :] = np.abs(Mz)
 
+        params["T1"] = T1_arr[1]
         Mz = InversionRecovery.simulate(params, "analytical")
-        ir_obj.IRData[1, 0, 0, :] = Mz
+        ir_obj.IRData[1, 0, 0, :] = np.abs(Mz)
 
+        params["T1"] = T1_arr[2]
         Mz = InversionRecovery.simulate(params, "analytical")
-        ir_obj.IRData[2, 0, 0, :] = Mz
+        ir_obj.IRData[2, 0, 0, :] = np.abs(Mz)
 
         ir_obj.fit()
 
-        expected_value = np.array([params["T1"], params["T1"], params["T1"]])
-        actual_value = ir_obj.T1
+        expected_value = np.array([T1_arr[0], T1_arr[1], T1_arr[2]])
+        actual_value = np.squeeze(ir_obj.T1)
 
         assert np.allclose(actual_value, expected_value)
 
@@ -140,10 +151,10 @@ class TestCore(object):
 
         ir_obj.fit()
 
-        expected_median_value = 1.33
+        expected_median_value = 0.7621
         actual_median_value = np.median(ir_obj.T1[ir_obj.T1 != 0])
 
-        assert actual_median_value == pytest.approx(expected_median_value, abs=0.1)
+        assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
 
     # --------------save tests-------------- #
     def test_save(self):

@@ -16,7 +16,7 @@ class InversionRecovery(Abstract):
     def __init__(self, params=None):
         if params == None:
             self.params = {
-                "inversion_times": [350, 500, 650, 800, 950, 1100, 1250, 1400, 1700],
+                "inversion_times": [0.350, 0.500, 0.650, 0.800, 0.950, 1.100, 1.250, 1.400, 1.700],
                 "repetition_time": None,
             }
         else:
@@ -38,19 +38,49 @@ class InversionRecovery(Abstract):
     def fit(self, model="Barral"):
         # nonlin- https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html
         IRData = self.IRData
-        Mask = self.Mask
+        Mask = self.Mask.astype(bool)
 
         # Get and format parameters
         inversion_times = np.array(self.params["inversion_times"])
         repetition_time = np.array(self.params["repetition_time"])
 
         if model is "Barral":
-            results = self._fit_barral(np.squeeze(IRData), inversion_times)
-            self.T1 = results.T1
-            self.a = results.a
-            self.b = results.b
-            self.residuals = results.residuals
-            self.idx = results.idx
+
+            dshape = IRData.shape
+
+            lin_data = IRData.reshape(-1, dshape[-1])
+            lin_mask = Mask.reshape(-1)
+
+            T1 = np.zeros(lin_data.shape[0])
+            a = np.zeros(lin_data.shape[0])
+            b = np.zeros(lin_data.shape[0])
+            residuals = np.zeros(lin_data.shape[0])
+            idx = np.zeros(lin_data.shape[0])
+
+            for vox in range(lin_data.shape[0]):
+                
+                if lin_mask[vox]:
+                    results = self._fit_barral(
+                        np.squeeze(lin_data[vox, :]), inversion_times
+                    )
+                    T1[vox] = results.T1
+                    a[vox] = results.a
+                    b[vox] = results.b
+                    residuals[vox] = results.residuals
+                    idx[vox] = results.idx
+
+            self.T1 = T1.reshape(dshape[0:3])
+            self.a = a.reshape(dshape[0:3])
+            self.b = b.reshape(dshape[0:3])
+            self.residuals = residuals.reshape(dshape[0:3])
+            self.idx = idx.reshape(dshape[0:3])
+
+            # Apply masks and remove NaNs
+            self._apply_mask(T1=self.T1)
+            self._apply_mask(a=self.a)
+            self._apply_mask(b=self.b)
+            self._apply_mask(residuals=self.residuals)
+            self._apply_mask(idx=self.idx)
 
     def _fit_barral(self, data, inversion_times):
         extra = {
@@ -114,10 +144,11 @@ class InversionRecovery(Abstract):
                 if pol_index is 0:
                     # First, we set all elements up to and including
                     # the smallest element to minus
-                    data_temp = data *  np.concatenate(
+
+                    data_temp = data * np.concatenate(
                         (
-                            -np.ones(index_min+1),
-                            np.ones(nls_dict["number_TIs"] - index_min-1)
+                            -np.ones(index_min + 1),
+                            np.ones(nls_dict["number_TIs"] - index_min - 1),
                         )
                     )
                 else:
@@ -127,36 +158,38 @@ class InversionRecovery(Abstract):
                     data_temp = data * np.concatenate(
                         (
                             -np.ones(index_min),
-                            np.ones(nls_dict["number_TIs"] - (index_min))
+                            np.ones(nls_dict["number_TIs"] - (index_min)),
                         )
                     )
 
                 # The sum of the data
                 y_sum = np.sum(data_temp)
-                
 
                 # Compute the vector of rho'*t for different rho,
                 # where rho = exp(-TI/T1) and y = dataTmp
-                rhoTyVec = np.matmul(data_temp, theExp) - 1/float(nls_dict["number_TIs"])*np.sum(theExp,0)*y_sum
+                rhoTyVec = (
+                    np.matmul(data_temp, theExp)
+                    - 1 / float(nls_dict["number_TIs"]) * np.sum(theExp, 0) * y_sum
+                )
 
                 # rhoNormVec is a vector containing the norm-squared of rho over TI,
                 # where rho = exp(-TI/T1), for different T1's.
                 rhoNormVec = nls_dict["rho_norm_vec"]
-                
+
                 # Find the max of the maximizing criterion
-                ind = np.argmax( np.abs(rhoTyVec.reshape(-1, 1))**2/rhoNormVec )
+                ind = np.argmax(np.abs(rhoTyVec.reshape(-1, 1)) ** 2 / rhoNormVec)
 
                 T1vec = nls_dict["T1_vec"]
 
                 T1LenZ = nls_dict["zoom_seach_length"]
-                for kk in range(2, nls_dict["number_zoom"]+1):
+                for kk in range(2, nls_dict["number_zoom"] + 1):
 
-                    if( ind > 0 and ind < len(T1vec) ):
-                        T1vec = np.linspace(T1vec[ind-1],T1vec[ind+1],T1LenZ)
-                    elif(ind == 0):
-                        T1vec = np.linspace(T1vec[ind],T1vec[ind+2],T1LenZ)
+                    if ind > 0 and ind < len(T1vec)-1:
+                        T1vec = np.linspace(T1vec[ind - 1], T1vec[ind + 1], T1LenZ)
+                    elif ind == 0:
+                        T1vec = np.linspace(T1vec[ind], T1vec[ind + 2], T1LenZ)
                     else:
-                        T1vec = np.linspace(T1vec[ind-2],T1vec[ind],T1LenZ)
+                        T1vec = np.linspace(T1vec[ind - 2], T1vec[ind], T1LenZ)
 
                     alpha_vec = np.expand_dims(1 / T1vec, 0)
                     the_exp = np.exp(
@@ -169,30 +202,46 @@ class InversionRecovery(Abstract):
                     )
 
                     yExpSum = np.matmul(data_temp.reshape(-1, 1).T, the_exp)
-                    rhoTyVec = yExpSum - 1/nls_dict["number_TIs"]*np.sum(the_exp,0)*y_sum
+                    rhoTyVec = (
+                        yExpSum
+                        - 1 / nls_dict["number_TIs"] * np.sum(the_exp, 0) * y_sum
+                    )
 
-                    ind = np.argmax( np.abs(rhoTyVec.reshape(-1, 1))**2/rho_norm_vec )
+                    ind = np.argmax(np.abs(rhoTyVec.reshape(-1, 1)) ** 2 / rho_norm_vec)
 
                 # The estimated parameters
-                T1_est[:,pol_index] = T1vec[ind]
-                b_est[:,pol_index] = rhoTyVec[:,ind] / rho_norm_vec[ind]
-                a_est[:,pol_index] = 1/nls_dict["number_TIs"]*(y_sum - b_est[:,pol_index]*np.sum(the_exp[:,ind]))
-                
+                T1_est[:, pol_index] = T1vec[ind]
+                b_est[:, pol_index] = rhoTyVec[:, ind] / rho_norm_vec[ind]
+                a_est[:, pol_index] = (
+                    1
+                    / nls_dict["number_TIs"]
+                    * (y_sum - b_est[:, pol_index] * np.sum(the_exp[:, ind]))
+                )
+
                 # Compute the residual
-                modelValue = a_est[:,pol_index] + b_est[:,pol_index]*np.exp(-nls_dict["TI_vec"].reshape(-1, 1)/T1_est[:,pol_index])
-                resTmp[:,pol_index] = 1/np.sqrt(nls_dict["number_TIs"]) * np.linalg.norm(1 - modelValue.T/data_temp)
+                modelValue = a_est[:, pol_index] + b_est[:, pol_index] * np.exp(
+                    -nls_dict["TI_vec"].reshape(-1, 1) / T1_est[:, pol_index]
+                )
+                resTmp[:, pol_index] = (
+                    1
+                    / np.sqrt(nls_dict["number_TIs"])
+                    * np.linalg.norm(1 - modelValue.T / data_temp)
+                )
 
         ind = np.argmin(resTmp)
-        aEst = a_est[:,ind]
-        bEst = b_est[:,ind]
-        T1Est = T1_est[:,ind]
-        if ind==0:
-            idx = index_min; # best fit when inverting the signal at the minimum
+        aEst = a_est[:, ind]
+        bEst = b_est[:, ind]
+        T1Est = T1_est[:, ind]
+
+        if ind == 0:
+            idx = index_min
+            # best fit when inverting the signal at the minimum
         else:
-            idx = index_min-1; # best fit when NOT inverting the signal at the minimum
+            idx = index_min - 1
+            # best fit when NOT inverting the signal at the minimum
 
         results = namedtuple("results", ["T1", "a", "b", "residuals", "idx"])
-        return results(T1Est, aEst, bEst, resTmp[:,ind], idx)
+        return results(T1Est, aEst, bEst, resTmp[:, ind], idx)
 
     @staticmethod
     def simulate(params, type="analytical"):
