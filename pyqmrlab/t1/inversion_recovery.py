@@ -4,6 +4,9 @@
 
 from collections import namedtuple
 import numpy as np
+import scipy.io as sio
+import nibabel as nib
+from pathlib import Path
 import pyqmrlab.utils as utils
 from pyqmrlab.abstract import Abstract
 
@@ -11,12 +14,24 @@ np.seterr(divide="ignore", invalid="ignore")
 
 
 class InversionRecovery(Abstract):
+    IRData = None
+    Mask = None
     data_url = "https://osf.io/cmg9z/download?version=3"
 
     def __init__(self, params=None):
         if params == None:
             self.params = {
-                "inversion_times": [0.350, 0.500, 0.650, 0.800, 0.950, 1.100, 1.250, 1.400, 1.700],
+                "inversion_times": [
+                    0.350,
+                    0.500,
+                    0.650,
+                    0.800,
+                    0.950,
+                    1.100,
+                    1.250,
+                    1.400,
+                    1.700,
+                ],
                 "repetition_time": None,
             }
         else:
@@ -25,9 +40,42 @@ class InversionRecovery(Abstract):
                 "repetition_time": params["repetition_time"],
             }
 
-    def load(self, IRData, Mask=None):
-        args = locals()
-        super().load(args)
+    def load(
+        self,
+        magnitude=None,
+        phase=None,
+        real=None,
+        imaginary=None,
+        complex=None,
+        Mask=None,
+    ):
+
+        if magnitude is not None and phase is not None:
+            pass
+        elif real is not None and imaginary is not None:
+            pass
+        elif complex is not None:
+            complex = Path(complex)
+            if ".mat" in complex.suffixes:
+                matDict = sio.loadmat(complex)
+                setattr(self, "IRData", matDict["complexData"])
+        else:
+            magnitude = Path(magnitude)
+            if ".mat" in magnitude.suffixes:
+                matDict = sio.loadmat(magnitude)
+                setattr(self, "IRData", matDict["IRData"])
+            elif ".nii" in filepath.suffixes:
+                img = nib.load(magnitude)
+                setattr(self, "IRData", img.get_fdata())
+
+        if Mask is not None:
+            Mask = Path(Mask)
+            if ".mat" in Mask.suffixes:
+                matDict = sio.loadmat(Mask)
+                setattr(self, "Mask", matDict["Mask"])
+            elif ".nii" in Mask.suffixes:
+                img = nib.load(magnitude)
+                setattr(self, "Mask", img.get_fdata())
 
     def save(self, filename=None):
         if filename == None:
@@ -38,6 +86,12 @@ class InversionRecovery(Abstract):
     def fit(self, model="Barral"):
         # nonlin- https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html
         IRData = self.IRData
+
+        NoneType = type(None)
+
+        if type(self.Mask) == NoneType:
+            dshape = IRData.shape
+            self.Mask = np.ones(dshape[0:3])
         Mask = self.Mask.astype(bool)
 
         # Get and format parameters
@@ -58,16 +112,15 @@ class InversionRecovery(Abstract):
             idx = np.zeros(lin_data.shape[0])
 
             for vox in range(lin_data.shape[0]):
-                
+
                 if lin_mask[vox]:
-                    results = self._fit_barral(
-                        np.squeeze(lin_data[vox, :]), inversion_times
-                    )
-                    T1[vox] = results.T1
-                    a[vox] = results.a
-                    b[vox] = results.b
-                    residuals[vox] = results.residuals
-                    idx[vox] = results.idx
+                    (
+                        T1[vox],
+                        a[vox],
+                        b[vox],
+                        residuals[vox],
+                        idx[vox],
+                    ) = self._fit_barral(np.squeeze(lin_data[vox, :]), inversion_times)
 
             self.T1 = T1.reshape(dshape[0:3])
             self.a = a.reshape(dshape[0:3])
@@ -89,18 +142,18 @@ class InversionRecovery(Abstract):
         }
 
         nls_dict = self._get_nls_dict(extra)
-        results = self._rd_nls(data, nls_dict)
+        T1_est, a_est, b_est, residual, idx = self._rd_nls(data, nls_dict)
 
-        return results
+        return T1_est, a_est, b_est, residual, idx
 
     def _get_nls_dict(self, extra):
         nls_dict = {}
-        nls_dict["TI_vec"] = extra["TI_vec"][:]
-        nls_dict["number_TIs"] = len(nls_dict["TI_vec"])
-        nls_dict["T1_vec"] = extra["T1_vec"][:]
+        nls_dict["TI_vec"] = extra["TI_vec"].reshape(-1, 1)
+        nls_dict["N_TIs"] = len(nls_dict["TI_vec"])
+        nls_dict["T1_vec"] = extra["T1_vec"]
         nls_dict["T1_start"] = nls_dict["T1_vec"][0]
         nls_dict["T1_stop"] = nls_dict["T1_vec"][-1]
-        nls_dict["number_T1s"] = len(nls_dict["T1_vec"])
+        nls_dict["N_T1s"] = len(nls_dict["T1_vec"])
 
         # Hardcoded algorithm settings from Barral's oringal implementation
         nls_dict["nls_algorithm"] = "grid"
@@ -109,12 +162,10 @@ class InversionRecovery(Abstract):
 
         if nls_dict["nls_algorithm"] is "grid":
             alpha_vec = np.expand_dims(1 / nls_dict["T1_vec"], 0)
-            nls_dict["the_exp"] = np.exp(
-                -np.matmul(nls_dict["TI_vec"].reshape(-1, 1), alpha_vec)
-            )
+            nls_dict["the_exp"] = np.exp(-np.matmul(nls_dict["TI_vec"], alpha_vec))
             nls_dict["rho_norm_vec"] = np.expand_dims(
                 np.sum(nls_dict["the_exp"] ** 2, 0)
-                - 1 / nls_dict["number_TIs"] * (np.sum(nls_dict["the_exp"], 0) ** 2),
+                - 1 / nls_dict["N_TIs"] * (np.sum(nls_dict["the_exp"], 0) ** 2),
                 1,
             )
 
@@ -122,126 +173,134 @@ class InversionRecovery(Abstract):
 
     def _rd_nls(self, data, nls_dict):
 
-        # Ensure data is magnitude
-        data = np.abs(data)
-
-        # Initialize variables
-        a_est = np.zeros((1, 2))
-        b_est = np.zeros((1, 2))
-        T1_est = np.zeros((1, 2))
-        res_est = np.zeros((1, 2))
-
-        # Find the min of the data
-        index_min = np.argmin(data)
-
         if nls_dict["nls_algorithm"] is "grid":
-            resTmp = np.zeros((1, 2))
-            # loop for each
-            for pol_index in [0, 1]:
 
-                theExp = nls_dict["the_exp"]
-
-                if pol_index is 0:
-                    # First, we set all elements up to and including
-                    # the smallest element to minus
-
-                    data_temp = data * np.concatenate(
-                        (
-                            -np.ones(index_min + 1),
-                            np.ones(nls_dict["number_TIs"] - index_min - 1),
-                        )
-                    )
-                else:
-                    # Second, we set all elements up to (not including)
-                    # the smallest element to minus
-
-                    data_temp = data * np.concatenate(
-                        (
-                            -np.ones(index_min),
-                            np.ones(nls_dict["number_TIs"] - (index_min)),
-                        )
-                    )
-
-                # The sum of the data
-                y_sum = np.sum(data_temp)
-
-                # Compute the vector of rho'*t for different rho,
-                # where rho = exp(-TI/T1) and y = dataTmp
-                rhoTyVec = (
-                    np.matmul(data_temp, theExp)
-                    - 1 / float(nls_dict["number_TIs"]) * np.sum(theExp, 0) * y_sum
+            if isinstance(data, complex):
+                (T1_est, b_est, a_est, residual,) = self._calc_nls_estimates(
+                    data_temp, nls_dict
                 )
 
-                # rhoNormVec is a vector containing the norm-squared of rho over TI,
-                # where rho = exp(-TI/T1), for different T1's.
-                rhoNormVec = nls_dict["rho_norm_vec"]
+            else:
+                # Ensure data is magnitude
+                data = np.abs(data)
 
-                # Find the max of the maximizing criterion
-                ind = np.argmax(np.abs(rhoTyVec.reshape(-1, 1)) ** 2 / rhoNormVec)
+                # Initialize variables
+                a_est = np.zeros(2)
+                b_est = np.zeros(2)
+                T1_est = np.zeros(2)
+                residual_tmp = np.zeros(2)
 
-                T1vec = nls_dict["T1_vec"]
+                # Find the min of the data
+                index_min = np.argmin(data)
 
-                T1LenZ = nls_dict["zoom_seach_length"]
-                for kk in range(2, nls_dict["number_zoom"] + 1):
+                # loop for each
+                for pol_index in [0, 1]:
 
-                    if ind > 0 and ind < len(T1vec)-1:
-                        T1vec = np.linspace(T1vec[ind - 1], T1vec[ind + 1], T1LenZ)
-                    elif ind == 0:
-                        T1vec = np.linspace(T1vec[ind], T1vec[ind + 2], T1LenZ)
+                    if pol_index is 0:
+                        # First, we set all elements up to and including
+                        # the smallest element to minus
+
+                        data_temp = data * np.concatenate(
+                            (
+                                -np.ones(index_min + 1),
+                                np.ones(nls_dict["N_TIs"] - index_min - 1),
+                            )
+                        )
                     else:
-                        T1vec = np.linspace(T1vec[ind - 2], T1vec[ind], T1LenZ)
+                        # Second, we set all elements up to (not including)
+                        # the smallest element to minus
 
-                    alpha_vec = np.expand_dims(1 / T1vec, 0)
-                    the_exp = np.exp(
-                        -np.matmul(nls_dict["TI_vec"].reshape(-1, 1), alpha_vec)
-                    )
-                    rho_norm_vec = np.expand_dims(
-                        np.sum(the_exp ** 2, 0)
-                        - 1 / nls_dict["number_TIs"] * (np.sum(the_exp, 0) ** 2),
-                        1,
-                    )
+                        data_temp = data * np.concatenate(
+                            (
+                                -np.ones(index_min),
+                                np.ones(nls_dict["N_TIs"] - (index_min)),
+                            )
+                        )
 
-                    yExpSum = np.matmul(data_temp.reshape(-1, 1).T, the_exp)
-                    rhoTyVec = (
-                        yExpSum
-                        - 1 / nls_dict["number_TIs"] * np.sum(the_exp, 0) * y_sum
-                    )
+                    (
+                        T1_est[pol_index],
+                        b_est[pol_index],
+                        a_est[pol_index],
+                        residual_tmp[pol_index],
+                    ) = self._calc_nls_estimates(data_temp, nls_dict)
 
-                    ind = np.argmax(np.abs(rhoTyVec.reshape(-1, 1)) ** 2 / rho_norm_vec)
+                ind = np.argmin(residual_tmp)
+                a_est = a_est[ind]
+                b_est = b_est[ind]
+                T1_est = T1_est[ind]
+                residual = residual_tmp[ind]
 
-                # The estimated parameters
-                T1_est[:, pol_index] = T1vec[ind]
-                b_est[:, pol_index] = rhoTyVec[:, ind] / rho_norm_vec[ind]
-                a_est[:, pol_index] = (
-                    1
-                    / nls_dict["number_TIs"]
-                    * (y_sum - b_est[:, pol_index] * np.sum(the_exp[:, ind]))
+                if ind == 0:
+                    # best fit when inverting the signal at the minimum
+                    idx = index_min
+                else:
+                    # best fit when NOT inverting the signal at the minimum
+                    idx = index_min - 1
+
+        return T1_est, a_est, b_est, residual, idx
+
+    def _calc_nls_estimates(self, data_temp, nls_dict):
+
+        the_exp = nls_dict["the_exp"]
+
+        # The sum of the data
+        y_sum = np.sum(data_temp)
+
+        # Compute the vector of rho'*t for different rho,
+        # where rho = exp(-TI/T1) and y = dataTmp
+        rho_t_y_vec = (
+            np.matmul(data_temp, the_exp)
+            - 1 / float(nls_dict["N_TIs"]) * np.sum(the_exp, 0) * y_sum
+        )
+
+        # rho_norm_vec is a vector containing the norm-squared of rho over TI,
+        # where rho = exp(-TI/T1), for different T1's.
+        rho_norm_vec = nls_dict["rho_norm_vec"]
+
+        # Find the max of the maximizing criterion
+        ind = np.argmax(np.abs(rho_t_y_vec.reshape(-1, 1)) ** 2 / rho_norm_vec)
+
+        T1_vec = nls_dict["T1_vec"]
+
+        zoom_seach_length = nls_dict["zoom_seach_length"]
+        for kk in range(2, nls_dict["number_zoom"] + 1):
+
+            if ind > 0 and ind < len(T1_vec) - 1:
+                T1_vec = np.linspace(
+                    T1_vec[ind - 1], T1_vec[ind + 1], zoom_seach_length
                 )
+            elif ind == 0:
+                T1_vec = np.linspace(T1_vec[ind], T1_vec[ind + 2], zoom_seach_length)
+            else:
+                T1_vec = np.linspace(T1_vec[ind - 2], T1_vec[ind], zoom_seach_length)
 
-                # Compute the residual
-                modelValue = a_est[:, pol_index] + b_est[:, pol_index] * np.exp(
-                    -nls_dict["TI_vec"].reshape(-1, 1) / T1_est[:, pol_index]
-                )
-                resTmp[:, pol_index] = (
-                    1
-                    / np.sqrt(nls_dict["number_TIs"])
-                    * np.linalg.norm(1 - modelValue.T / data_temp)
-                )
+            alpha_vec = np.expand_dims(1 / T1_vec, 0)
+            the_exp = np.exp(-np.matmul(nls_dict["TI_vec"], alpha_vec))
+            rho_norm_vec = np.expand_dims(
+                np.sum(the_exp ** 2, 0)
+                - 1 / nls_dict["N_TIs"] * (np.sum(the_exp, 0) ** 2),
+                1,
+            )
 
-        ind = np.argmin(resTmp)
-        aEst = a_est[:, ind]
-        bEst = b_est[:, ind]
-        T1Est = T1_est[:, ind]
+            y_exp_sum = np.matmul(data_temp.reshape(-1, 1).T, the_exp)
+            rho_t_y_vec = y_exp_sum - 1 / nls_dict["N_TIs"] * np.sum(the_exp, 0) * y_sum
 
-        if ind == 0:
-            idx = index_min
-            # best fit when inverting the signal at the minimum
-        else:
-            idx = index_min - 1
-            # best fit when NOT inverting the signal at the minimum
+            ind = np.argmax(np.abs(rho_t_y_vec.reshape(-1, 1)) ** 2 / rho_norm_vec)
 
-        results = namedtuple("results", ["T1", "a", "b", "residuals", "idx"])
-        return results(T1Est, aEst, bEst, resTmp[:, ind], idx)
+        # The estimated parameters
+        T1_est = T1_vec[ind]
+        b_est = rho_t_y_vec[:, ind] / rho_norm_vec[ind]
+        a_est = 1 / nls_dict["N_TIs"] * (y_sum - b_est * np.sum(the_exp[:, ind]))
+
+        # Compute the residual
+        model_value = a_est + b_est * np.exp(-nls_dict["TI_vec"] / T1_est)
+        residual = (
+            1
+            / np.sqrt(nls_dict["N_TIs"])
+            * np.linalg.norm(1 - model_value.T / data_temp)
+        )
+
+        return T1_est, b_est, a_est, residual
 
     @staticmethod
     def simulate(params, type="analytical"):

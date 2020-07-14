@@ -19,6 +19,7 @@ class TestCore(object):
         shutil.rmtree(tmpPath)
 
     # --------------attribute tests-------------- #
+    @pytest.mark.single
     def test_data_url_link_exists(self):
 
         ir_obj = InversionRecovery()
@@ -32,6 +33,7 @@ class TestCore(object):
             pytest.fail("Website not found.")
 
     # --------------download tests-------------- #
+    @pytest.mark.single
     def test_download(self):
         ir_obj = InversionRecovery()
         ir_obj.download(self.tmpPath)
@@ -46,13 +48,14 @@ class TestCore(object):
             assert file.is_file()
 
     # --------------load tests-------------- #
+    @pytest.mark.single
     def test_load(self):
         ir_obj = InversionRecovery()
 
         IRData = self.tmpPath / "inversion_recovery/IRData.mat"
         Mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
-        ir_obj.load(IRData, Mask)
+        ir_obj.load(magnitude=IRData, Mask=Mask)
 
         assert isinstance(ir_obj.IRData, np.ndarray)
         assert isinstance(ir_obj.Mask, np.ndarray)
@@ -64,6 +67,7 @@ class TestCore(object):
         assert ir_obj.Mask.shape == expected_shape_mask
 
     # --------------simulate tests-------------- #
+    @pytest.mark.single
     def test_simulate(self):
         ir_obj = InversionRecovery()
         params = {
@@ -82,6 +86,7 @@ class TestCore(object):
         assert np.allclose(actual_value, expected_value)
 
     # --------------fit tests-------------- #
+    @pytest.mark.single
     def test_fit_simulate_1vox(self):
         params = {
             "excitation_flip_angle": 90,
@@ -108,6 +113,7 @@ class TestCore(object):
 
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
+    @pytest.mark.single
     def test_fit_simulate_3vox(self):
 
         T1_arr = [0.850, 1.1, 0.53]
@@ -147,7 +153,7 @@ class TestCore(object):
         IRData = self.tmpPath / "inversion_recovery/IRData.mat"
         Mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
-        ir_obj.load(IRData, Mask)
+        ir_obj.load(magnitude=IRData, Mask=Mask)
 
         ir_obj.fit()
 
@@ -157,13 +163,14 @@ class TestCore(object):
         assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
 
     # --------------save tests-------------- #
+
     def test_save(self):
         ir_obj = InversionRecovery()
 
         IRData = self.tmpPath / "inversion_recovery/IRData.mat"
         Mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
-        ir_obj.load(IRData, Mask)
+        ir_obj.load(magnitude=IRData, Mask=Mask)
 
         ir_obj.fit()
 
