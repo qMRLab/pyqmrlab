@@ -69,7 +69,7 @@ class TestCore(object):
     # --------------simulate tests-------------- #
     @pytest.mark.single
     def test_simulate(self):
-        ir_obj = InversionRecovery()
+
         params = {
             "excitation_flip_angle": 90,
             "inversion_flip_angle": 180,
@@ -94,6 +94,37 @@ class TestCore(object):
             "inversion_times": [0.050, 0.400, 1.100, 2.500],
             "repetition_time": 2.550,
             "T1": 0.850,
+        }
+
+        ir_obj = InversionRecovery(params)
+
+        Mz = InversionRecovery.simulate(params, "analytical")
+
+        ir_obj.IRData = np.ones((1, 1, 1, len(params["inversion_times"])))
+
+        ir_obj.IRData[0, 0, 0, :] = np.abs(Mz)
+
+        ir_obj.Mask = np.ones((1, 1))
+
+        ir_obj.fit()
+
+        expected_value = params["T1"]
+        actual_value = ir_obj.T1
+
+        assert actual_value == pytest.approx(expected_value, abs=0.01)
+
+    @pytest.mark.single
+    def test_fit_simulate_1vox_complex(self):
+        magnitude = 112
+        phase = -np.pi/4
+        
+        params = {
+            "excitation_flip_angle": 90,
+            "inversion_flip_angle": 180,
+            "inversion_times": [0.050, 0.400, 1.100, 2.500],
+            "repetition_time": 2.550,
+            "T1": 1.150,
+            "constant": magnitude*np.exp(1j*phase)
         }
 
         ir_obj = InversionRecovery(params)
