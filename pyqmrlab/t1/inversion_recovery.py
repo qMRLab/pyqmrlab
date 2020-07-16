@@ -143,6 +143,13 @@ class InversionRecovery(Abstract):
         nls_dict = self._get_nls_dict(extra)
         T1_est, a_est, b_est, residual, idx = self._rd_nls(data, nls_dict)
 
+        # This case happens for complex data, maybe cleanup in _rd_nls in the
+        # future
+        if isinstance(a_est,np.ndarray):
+            a_est = a_est[0]
+        if isinstance(b_est,np.ndarray):
+            b_est = b_est[0]
+
         return T1_est, a_est, b_est, residual, idx
 
     def _get_nls_dict(self, extra):
@@ -174,11 +181,11 @@ class InversionRecovery(Abstract):
 
         if nls_dict["nls_algorithm"] is "grid":
 
-            if isinstance(data, complex):
-                (T1_est, b_est, a_est, residual,) = self._calc_nls_estimates(
+            if np.all(np.iscomplex(data)):
+                (T1_est, b_est, a_est, residual, ) = self._calc_nls_estimates(
                     data, nls_dict
                 )
-
+                idx = None
             else:
                 # Ensure data is magnitude
                 data = np.abs(data)

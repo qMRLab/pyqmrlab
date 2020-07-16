@@ -100,7 +100,7 @@ class TestCore(object):
 
         Mz = InversionRecovery.simulate(params, "analytical")
 
-        ir_obj.IRData = np.ones((1, 1, 1, len(params["inversion_times"])))
+        ir_obj.IRData = np.zeros((1, 1, 1, len(params["inversion_times"])))
 
         ir_obj.IRData[0, 0, 0, :] = np.abs(Mz)
 
@@ -131,9 +131,11 @@ class TestCore(object):
 
         Mz = InversionRecovery.simulate(params, "analytical")
 
-        ir_obj.IRData = np.ones((1, 1, 1, len(params["inversion_times"])))
+        ir_obj.IRData = np.zeros((1, 1, 1, len(params["inversion_times"])), dtype = 'complex_')
 
-        ir_obj.IRData[0, 0, 0, :] = np.abs(Mz)
+        ir_obj.IRData[0, 0, 0, :] = Mz
+
+        assert np.all(np.iscomplex(ir_obj.IRData))
 
         ir_obj.Mask = np.ones((1, 1))
 
