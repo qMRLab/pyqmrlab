@@ -52,6 +52,9 @@ class MTsat(Abstract):
 
     data_url = "https://osf.io/c5wdb/download?version=3"
     params = None
+    T1w = None
+    PDw = None
+    MTw = None
 
     def __init__(self, params=None):
         """Initializes a MTsat object.

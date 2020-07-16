@@ -48,6 +48,9 @@ class VFA(Abstract):
     """
 
     data_url = "https://osf.io/7wcvh/download?version=1"
+    VFAData = None
+    B1map = None
+    Mask = None
 
     def __init__(self, params=None):
         """Initializes a VFA object.

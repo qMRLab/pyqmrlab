@@ -64,7 +64,7 @@ class InversionRecovery(Abstract):
             if ".mat" in magnitude.suffixes:
                 matDict = sio.loadmat(magnitude)
                 setattr(self, "IRData", matDict["IRData"])
-            elif ".nii" in filepath.suffixes:
+            elif ".nii" in magnitude.suffixes:
                 img = nib.load(magnitude)
                 setattr(self, "IRData", img.get_fdata())
 
@@ -96,7 +96,6 @@ class InversionRecovery(Abstract):
 
         # Get and format parameters
         inversion_times = np.array(self.params["inversion_times"])
-        repetition_time = np.array(self.params["repetition_time"])
 
         if model is "Barral":
 
@@ -177,7 +176,7 @@ class InversionRecovery(Abstract):
 
             if isinstance(data, complex):
                 (T1_est, b_est, a_est, residual,) = self._calc_nls_estimates(
-                    data_temp, nls_dict
+                    data, nls_dict
                 )
 
             else:
@@ -263,7 +262,7 @@ class InversionRecovery(Abstract):
         T1_vec = nls_dict["T1_vec"]
 
         zoom_seach_length = nls_dict["zoom_seach_length"]
-        for kk in range(2, nls_dict["number_zoom"] + 1):
+        for _ in range(2, nls_dict["number_zoom"] + 1):
 
             if ind > 0 and ind < len(T1_vec) - 1:
                 T1_vec = np.linspace(

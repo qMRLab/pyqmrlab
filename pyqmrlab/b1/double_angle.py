@@ -47,6 +47,8 @@ class DoubleAngle(Abstract):
 
     data_url = "https://osf.io/kytxw/download?version=1"
     params = None
+    img1 = None
+    img2 = None
 
     def __init__(self, params=None):
         """Initializes a DoubleAngle object.

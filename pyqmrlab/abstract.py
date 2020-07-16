@@ -1,4 +1,5 @@
 # coding: utf-8
+# pylint: disable=E1101
 
 # Scientific modules imports
 from abc import ABCMeta, abstractmethod
