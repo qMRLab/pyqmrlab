@@ -25,12 +25,21 @@ class Abstract(object, metaclass=ABCMeta):
         for key, value in args.items():
             if key != "self" and key != "__class__" and value != None:
                 filepath = Path(value)
-                if ".mat" in filepath.suffixes:
-                    matDict = sio.loadmat(filepath)
-                    setattr(self, key, matDict[key])
-                elif ".nii" in filepath.suffixes:
-                    img = nib.load(filepath)
-                    setattr(self, key, img.get_fdata())
+                self._load_data(filepath, key)
+
+    def _load_data(self, filepath, key=None):
+        if ".mat" in filepath.suffixes:
+            matDict = sio.loadmat(filepath)
+            if key is not None:
+                setattr(self, key, matDict[key])
+            else:
+                return matDict
+        elif ".nii" in filepath.suffixes:
+            img = nib.load(filepath)
+            if key is not None:
+                setattr(self, key, img.get_fdata())
+            else:
+                return img.get_fdata()
 
     @abstractmethod
     def save(self, img, filename):

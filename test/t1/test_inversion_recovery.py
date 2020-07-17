@@ -245,8 +245,6 @@ class TestCore(object):
         assert np.iscomplex(ir_obj.a).all
         assert np.iscomplex(ir_obj.b).all
 
-
-
     def test_fit_complex_real_imaginary(self):
         url_data_mag_phase = "https://osf.io/qnhjt/download/"
         download_data(url_data_mag_phase, folder=self.tmpPath)
@@ -277,6 +275,7 @@ class TestCore(object):
 
         assert np.iscomplex(ir_obj.a).all
         assert np.iscomplex(ir_obj.b).all
+
     # --------------save tests-------------- #
 
     def test_save(self):

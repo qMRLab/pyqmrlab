@@ -60,66 +60,41 @@ class InversionRecovery(Abstract):
 
         if magnitude is not None and phase is not None:
             magnitude = Path(magnitude)
-            if ".mat" in magnitude.suffixes:
-                mag_data = sio.loadmat(magnitude)
-            elif ".nii" in magnitude.suffixes:
-                img = nib.load(magnitude)
-                mag_data = img.get_fdata()
+            mag_data = self._load_data(magnitude)
 
             phase = Path(phase)
-            if ".mat" in phase.suffixes:
-                ph_data = sio.loadmat(phase)
-            elif ".nii" in phase.suffixes:
-                img = nib.load(phase)
-                raw_ph_data = img.get_fdata()
-                ph_data = (
-                    raw_ph_data.astype(float)
-                    / np.max(raw_ph_data[:].astype(float))
-                    * np.pi
-                )
+            raw_phase_data = self._load_data(phase)
 
-            complex_data = mag_data * np.exp(1j * ph_data)
+            phase_data = (
+                raw_phase_data.astype(float)
+                / np.max(raw_phase_data[:].astype(float))
+                * np.pi
+            )
+
+            complex_data = mag_data * np.exp(1j * phase_data)
+
             setattr(self, "IRData", complex_data)
         elif real is not None and imaginary is not None:
             real = Path(real)
-            if ".mat" in real.suffixes:
-                real_data = sio.loadmat(real)
-            elif ".nii" in real.suffixes:
-                img = nib.load(real)
-                real_data = img.get_fdata()
+            real_data = self._load_data(real)
 
             imaginary = Path(imaginary)
-            if ".mat" in imaginary.suffixes:
-                imaginary_data = sio.loadmat(imaginary)
-            elif ".nii" in imaginary.suffixes:
-                img = nib.load(imaginary)
-                imaginary_data = img.get_fdata()
+            imaginary_data = self._load_data(imaginary)
 
             complex_data = real_data + 1j * imaginary_data
             setattr(self, "IRData", complex_data)
 
         elif complex is not None:
             complex = Path(complex)
-            if ".mat" in complex.suffixes:
-                matDict = sio.loadmat(complex)
-                setattr(self, "IRData", matDict["complexData"])
+            self._load_data(complex, "IRData")
+
         else:
             magnitude = Path(magnitude)
-            if ".mat" in magnitude.suffixes:
-                matDict = sio.loadmat(magnitude)
-                setattr(self, "IRData", matDict["IRData"])
-            elif ".nii" in magnitude.suffixes:
-                img = nib.load(magnitude)
-                setattr(self, "IRData", img.get_fdata())
+            self._load_data(magnitude, "IRData")
 
         if Mask is not None:
             Mask = Path(Mask)
-            if ".mat" in Mask.suffixes:
-                matDict = sio.loadmat(Mask)
-                setattr(self, "Mask", matDict["Mask"])
-            elif ".nii" in Mask.suffixes:
-                img = nib.load(magnitude)
-                setattr(self, "Mask", img.get_fdata())
+            mag_data = self._load_data(Mask, "Mask")
 
     def save(self, filename=None):
         if filename == None:
