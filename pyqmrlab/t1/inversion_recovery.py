@@ -18,6 +18,12 @@ class InversionRecovery(Abstract):
     Mask = None
     data_url = "https://osf.io/cmg9z/download?version=3"
 
+    T1 = None
+    a = None
+    b = None
+    residual = None
+    idx = None
+
     def __init__(self, params=None):
         if params == None:
             self.params = {
@@ -35,6 +41,8 @@ class InversionRecovery(Abstract):
                 "repetition_time": None,
             }
         else:
+            if "repetition_time" not in params:
+                params["repetition_time"] = None
             self.params = {
                 "inversion_times": params["inversion_times"],
                 "repetition_time": params["repetition_time"],
@@ -51,9 +59,45 @@ class InversionRecovery(Abstract):
     ):
 
         if magnitude is not None and phase is not None:
-            pass
+            magnitude = Path(magnitude)
+            if ".mat" in magnitude.suffixes:
+                mag_data = sio.loadmat(magnitude)
+            elif ".nii" in magnitude.suffixes:
+                img = nib.load(magnitude)
+                mag_data = img.get_fdata()
+
+            phase = Path(phase)
+            if ".mat" in phase.suffixes:
+                ph_data = sio.loadmat(phase)
+            elif ".nii" in phase.suffixes:
+                img = nib.load(phase)
+                raw_ph_data = img.get_fdata()
+                ph_data = (
+                    raw_ph_data.astype(float)
+                    / np.max(raw_ph_data[:].astype(float))
+                    * np.pi
+                )
+
+            complex_data = mag_data * np.exp(1j * ph_data)
+            setattr(self, "IRData", complex_data)
         elif real is not None and imaginary is not None:
-            pass
+            real = Path(real)
+            if ".mat" in real.suffixes:
+                real_data = sio.loadmat(real)
+            elif ".nii" in real.suffixes:
+                img = nib.load(real)
+                real_data = img.get_fdata()
+
+            imaginary = Path(imaginary)
+            if ".mat" in imaginary.suffixes:
+                imaginary_data = sio.loadmat(imaginary)
+            elif ".nii" in imaginary.suffixes:
+                img = nib.load(imaginary)
+                imaginary_data = img.get_fdata()
+
+            complex_data = real_data + 1j * imaginary_data
+            setattr(self, "IRData", complex_data)
+
         elif complex is not None:
             complex = Path(complex)
             if ".mat" in complex.suffixes:
@@ -105,8 +149,12 @@ class InversionRecovery(Abstract):
             lin_mask = Mask.reshape(-1)
 
             T1 = np.zeros(lin_data.shape[0])
-            a = np.zeros(lin_data.shape[0])
-            b = np.zeros(lin_data.shape[0])
+            if np.iscomplex(IRData).all:
+                a = np.zeros(lin_data.shape[0], dtype="complex_")
+                b = np.zeros(lin_data.shape[0], dtype="complex_")
+            else:
+                a = np.zeros(lin_data.shape[0])
+                b = np.zeros(lin_data.shape[0])
             residuals = np.zeros(lin_data.shape[0])
             idx = np.zeros(lin_data.shape[0])
 
@@ -145,9 +193,9 @@ class InversionRecovery(Abstract):
 
         # This case happens for complex data, maybe cleanup in _rd_nls in the
         # future
-        if isinstance(a_est,np.ndarray):
+        if isinstance(a_est, np.ndarray):
             a_est = a_est[0]
-        if isinstance(b_est,np.ndarray):
+        if isinstance(b_est, np.ndarray):
             b_est = b_est[0]
 
         return T1_est, a_est, b_est, residual, idx
@@ -182,7 +230,7 @@ class InversionRecovery(Abstract):
         if nls_dict["nls_algorithm"] is "grid":
 
             if np.all(np.iscomplex(data)):
-                (T1_est, b_est, a_est, residual, ) = self._calc_nls_estimates(
+                (T1_est, b_est, a_est, residual,) = self._calc_nls_estimates(
                     data, nls_dict
                 )
                 idx = None

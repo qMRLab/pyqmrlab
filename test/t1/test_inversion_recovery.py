@@ -3,6 +3,7 @@
 import pytest
 from pathlib import Path
 from pyqmrlab.t1 import InversionRecovery
+from pyqmrlab.utils import download_data
 import httplib2
 import shutil
 import numpy as np
@@ -19,7 +20,6 @@ class TestCore(object):
         shutil.rmtree(tmpPath)
 
     # --------------attribute tests-------------- #
-    @pytest.mark.single
     def test_data_url_link_exists(self):
 
         ir_obj = InversionRecovery()
@@ -33,7 +33,6 @@ class TestCore(object):
             pytest.fail("Website not found.")
 
     # --------------download tests-------------- #
-    @pytest.mark.single
     def test_download(self):
         ir_obj = InversionRecovery()
         ir_obj.download(self.tmpPath)
@@ -48,7 +47,6 @@ class TestCore(object):
             assert file.is_file()
 
     # --------------load tests-------------- #
-    @pytest.mark.single
     def test_load(self):
         ir_obj = InversionRecovery()
 
@@ -66,8 +64,27 @@ class TestCore(object):
         assert ir_obj.IRData.shape == expected_shape_data
         assert ir_obj.Mask.shape == expected_shape_mask
 
+    # --------------load tests-------------- #
+    def test_load_complex_mag_phase(self):
+        url_data_mag_phase = "https://osf.io/67b8p/download/"
+        download_data(url_data_mag_phase, folder=self.tmpPath)
+
+        magnitude = (
+            self.tmpPath
+            / "20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST_Magnitude.nii.gz"
+        )
+        phase = (
+            self.tmpPath
+            / "20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST_Phase.nii.gz"
+        )
+
+        ir_obj = InversionRecovery()
+        ir_obj.load(magnitude=magnitude, phase=phase)
+
+        assert isinstance(ir_obj.IRData, np.ndarray)
+        assert np.iscomplex(ir_obj.IRData).all
+
     # --------------simulate tests-------------- #
-    @pytest.mark.single
     def test_simulate(self):
 
         params = {
@@ -86,7 +103,6 @@ class TestCore(object):
         assert np.allclose(actual_value, expected_value)
 
     # --------------fit tests-------------- #
-    @pytest.mark.single
     def test_fit_simulate_1vox(self):
         params = {
             "excitation_flip_angle": 90,
@@ -113,25 +129,26 @@ class TestCore(object):
 
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
-    @pytest.mark.single
     def test_fit_simulate_1vox_complex(self):
         magnitude = 112
-        phase = -np.pi/4
-        
+        phase = -np.pi / 4
+
         params = {
             "excitation_flip_angle": 90,
             "inversion_flip_angle": 180,
             "inversion_times": [0.050, 0.400, 1.100, 2.500],
             "repetition_time": 2.550,
             "T1": 1.150,
-            "constant": magnitude*np.exp(1j*phase)
+            "constant": magnitude * np.exp(1j * phase),
         }
 
         ir_obj = InversionRecovery(params)
 
         Mz = InversionRecovery.simulate(params, "analytical")
 
-        ir_obj.IRData = np.zeros((1, 1, 1, len(params["inversion_times"])), dtype = 'complex_')
+        ir_obj.IRData = np.zeros(
+            (1, 1, 1, len(params["inversion_times"])), dtype="complex_"
+        )
 
         ir_obj.IRData[0, 0, 0, :] = Mz
 
@@ -146,7 +163,9 @@ class TestCore(object):
 
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
-    @pytest.mark.single
+        assert np.iscomplex(ir_obj.a).all
+        assert np.iscomplex(ir_obj.b).all
+
     def test_fit_simulate_3vox(self):
 
         T1_arr = [0.850, 1.1, 0.53]
@@ -195,6 +214,69 @@ class TestCore(object):
 
         assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
 
+    def test_fit_complex_mag_phase(self):
+        url_data_mag_phase = "https://osf.io/67b8p/download/"
+        download_data(url_data_mag_phase, folder=self.tmpPath)
+
+        magnitude = (
+            self.tmpPath
+            / "20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST_Magnitude.nii.gz"
+        )
+        phase = (
+            self.tmpPath
+            / "20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST/20200121_matthewgrechsollars_ICL_NIST_Phase.nii.gz"
+        )
+
+        ir_obj = InversionRecovery(
+            params={"inversion_times": [0.050, 0.400, 1.100, 2.400]}
+        )
+        ir_obj.load(magnitude=magnitude, phase=phase)
+
+        ir_obj.fit()
+
+        expected_median_value = 2.2035
+        actual_median_value = np.median(ir_obj.T1[ir_obj.T1 != 0])
+
+        outputFile = self.tmpPath / "T1.nii.gz"
+        ir_obj.save(outputFile)
+
+        assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
+
+        assert np.iscomplex(ir_obj.a).all
+        assert np.iscomplex(ir_obj.b).all
+
+
+
+    def test_fit_complex_real_imaginary(self):
+        url_data_mag_phase = "https://osf.io/qnhjt/download/"
+        download_data(url_data_mag_phase, folder=self.tmpPath)
+
+        real = (
+            self.tmpPath
+            / "20200210_guillaumegilbert_muhc_NIST/20200210_guillaumegilbert_muhc_NIST/20200210_guillaumegilbert_muhc_NIST_Real.nii.gz"
+        )
+        imaginary = (
+            self.tmpPath
+            / "20200210_guillaumegilbert_muhc_NIST/20200210_guillaumegilbert_muhc_NIST/20200210_guillaumegilbert_muhc_NIST_Imaginary.nii.gz"
+        )
+
+        ir_obj = InversionRecovery(
+            params={"inversion_times": [0.050, 0.400, 1.100, 2.500]}
+        )
+        ir_obj.load(real=real, imaginary=imaginary)
+
+        ir_obj.fit()
+
+        expected_median_value = 3.4587
+        actual_median_value = np.median(ir_obj.T1[ir_obj.T1 != 0])
+
+        outputFile = self.tmpPath / "T1.nii.gz"
+        ir_obj.save(outputFile)
+
+        assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
+
+        assert np.iscomplex(ir_obj.a).all
+        assert np.iscomplex(ir_obj.b).all
     # --------------save tests-------------- #
 
     def test_save(self):
