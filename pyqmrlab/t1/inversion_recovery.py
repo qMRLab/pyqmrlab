@@ -21,7 +21,7 @@ class InversionRecovery(Abstract):
     T1 = None
     a = None
     b = None
-    residual = None
+    residuals = None
     idx = None
 
     def __init__(self, params=None):
@@ -123,39 +123,34 @@ class InversionRecovery(Abstract):
             lin_data = IRData.reshape(-1, dshape[-1])
             lin_mask = Mask.reshape(-1)
 
-            T1 = np.zeros(lin_data.shape[0])
+            results = {}
+            results['T1'] = np.zeros(lin_data.shape[0])
             if np.iscomplex(IRData).all:
-                a = np.zeros(lin_data.shape[0], dtype="complex_")
-                b = np.zeros(lin_data.shape[0], dtype="complex_")
+                results['a'] = np.zeros(lin_data.shape[0], dtype="complex_")
+                results['b'] = np.zeros(lin_data.shape[0], dtype="complex_")
             else:
-                a = np.zeros(lin_data.shape[0])
-                b = np.zeros(lin_data.shape[0])
-            residuals = np.zeros(lin_data.shape[0])
-            idx = np.zeros(lin_data.shape[0])
+                results['a'] = np.zeros(lin_data.shape[0])
+                results['b'] = np.zeros(lin_data.shape[0])
+            results['residuals'] = np.zeros(lin_data.shape[0])
+            results['idx'] = np.zeros(lin_data.shape[0])
 
             for vox in range(lin_data.shape[0]):
 
                 if lin_mask[vox]:
                     (
-                        T1[vox],
-                        a[vox],
-                        b[vox],
-                        residuals[vox],
-                        idx[vox],
+                        results['T1'][vox],
+                        results['a'][vox],
+                        results['b'][vox],
+                        results['residuals'][vox],
+                        results['idx'][vox],
                     ) = self._fit_barral(np.squeeze(lin_data[vox, :]), inversion_times)
 
-            self.T1 = T1.reshape(dshape[0:3])
-            self.a = a.reshape(dshape[0:3])
-            self.b = b.reshape(dshape[0:3])
-            self.residuals = residuals.reshape(dshape[0:3])
-            self.idx = idx.reshape(dshape[0:3])
+            for key, value in results.items():
+                # Reshape vector back to volume dimensions
+                setattr(self, key, value.reshape(dshape[0:3]))
 
-            # Apply masks and remove NaNs
-            self._apply_mask(T1=self.T1)
-            self._apply_mask(a=self.a)
-            self._apply_mask(b=self.b)
-            self._apply_mask(residuals=self.residuals)
-            self._apply_mask(idx=self.idx)
+                # Apply masks and remove NaNs
+                self._apply_mask(**{key: getattr(self, key)})
 
     def _fit_barral(self, data, inversion_times):
         extra = {
