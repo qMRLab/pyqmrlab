@@ -44,6 +44,9 @@ class MTR(Abstract):
     """
 
     data_url = "https://osf.io/erm2s/download?version=1"
+    MToff = None
+    MTon = None
+    Mask = None
 
     def __init__(self):
         pass

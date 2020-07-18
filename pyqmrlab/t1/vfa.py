@@ -1,5 +1,4 @@
 # coding: utf-8
-# coding: utf-8
 """Calculate variable flip angle (VFA) T1 mapping
 
 This module is for calculating T1 from gradient echo data acquired with
@@ -35,7 +34,7 @@ np.seterr(divide="ignore", invalid="ignore")
 
 
 class VFA(Abstract):
-    """Variable flip angle T1 mapping data processing class
+    """Variable flip angle T1 mapping data processing class.
 
     Fits variable flip angle T1 mapping data and saves to NIfTI. Demo dataset
     available for download.
@@ -46,7 +45,11 @@ class VFA(Abstract):
                 measurements. Measurement keys: flip_angle (degrees), 
                 repetition_time (seconds).
     """
+
     data_url = "https://osf.io/7wcvh/download?version=1"
+    VFAData = None
+    B1map = None
+    Mask = None
 
     def __init__(self, params=None):
         """Initializes a VFA object.
@@ -136,7 +139,7 @@ class VFA(Abstract):
             Mz: numpy array of the longitudinal magnetization for each flip
                 angle measurement.
         """
-        if type is 'analytical':
+        if type is "analytical":
             try:
                 repetition_time = params["repetition_time"]  # seconds
                 flip_angle = np.array(np.deg2rad(params["flip_angle"]))
@@ -152,7 +155,10 @@ class VFA(Abstract):
                     T1 = 0.850  # ms
                 Mz = (
                     constant
-                    * ((1 - np.exp(-repetition_time / T1)) / (1 - np.cos(flip_angle) * np.exp(-repetition_time / T1)))
+                    * (
+                        (1 - np.exp(-repetition_time / T1))
+                        / (1 - np.cos(flip_angle) * np.exp(-repetition_time / T1))
+                    )
                     * np.sin(flip_angle)
                 )
                 return Mz
