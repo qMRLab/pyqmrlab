@@ -1,5 +1,4 @@
 # coding: utf-8
-# coding: utf-8
 """Calculate variable flip angle (VFA) T1 mapping
 
 This module is for calculating T1 from gradient echo data acquired with
@@ -35,7 +34,7 @@ np.seterr(divide="ignore", invalid="ignore")
 
 
 class VFA(Abstract):
-    """Variable flip angle T1 mapping data processing class
+    """Variable flip angle T1 mapping data processing class.
 
     Fits variable flip angle T1 mapping data and saves to NIfTI. Demo dataset
     available for download.

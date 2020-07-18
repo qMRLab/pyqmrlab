@@ -40,7 +40,7 @@ class TestCore(object):
         expected_folder = self.tmpPath / "inversion_recovery"
         expected_files = [
             self.tmpPath / "inversion_recovery/IRData.mat",
-            self.tmpPath / "inversion_recovery/Mask.mat",
+            self.tmpPath / "inversion_recovery/mask.mat",
         ]
         assert expected_folder.is_dir()
         for file in expected_files:
@@ -50,10 +50,10 @@ class TestCore(object):
     def test_load(self):
         ir_obj = InversionRecovery()
 
-        IRData = self.tmpPath / "inversion_recovery/IRData.mat"
-        Mask = self.tmpPath / "inversion_recovery/Mask.mat"
+        magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
+        mask = self.tmpPath / "inversion_recovery/mask.mat"
 
-        ir_obj.load(magnitude=IRData, Mask=Mask)
+        ir_obj.load(magnitude=magnitude, mask=mask)
 
         assert isinstance(ir_obj.IRData, np.ndarray)
         assert isinstance(ir_obj.Mask, np.ndarray)
@@ -202,10 +202,10 @@ class TestCore(object):
     def test_fit(self):
         ir_obj = InversionRecovery()
 
-        IRData = self.tmpPath / "inversion_recovery/IRData.mat"
-        Mask = self.tmpPath / "inversion_recovery/Mask.mat"
+        magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
+        mask = self.tmpPath / "inversion_recovery/mask.mat"
 
-        ir_obj.load(magnitude=IRData, Mask=Mask)
+        ir_obj.load(magnitude=magnitude, mask=mask)
 
         ir_obj.fit()
 
@@ -281,10 +281,10 @@ class TestCore(object):
     def test_save(self):
         ir_obj = InversionRecovery()
 
-        IRData = self.tmpPath / "inversion_recovery/IRData.mat"
-        Mask = self.tmpPath / "inversion_recovery/Mask.mat"
+        magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
+        mask = self.tmpPath / "inversion_recovery/mask.mat"
 
-        ir_obj.load(magnitude=IRData, Mask=Mask)
+        ir_obj.load(magnitude=magnitude, mask=mask)
 
         ir_obj.fit()
 

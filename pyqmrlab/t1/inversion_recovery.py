@@ -1,19 +1,52 @@
 # coding: utf-8
+"""Calculate Inversion Recovery (IR) T1 mapping
 
-# Scientific modules imports
+This module is for fitting T1 from inversion recovery data acquired with
+different inversion times.
 
-from collections import namedtuple
-import numpy as np
-import scipy.io as sio
-import nibabel as nib
-from pathlib import Path
-import pyqmrlab.utils as utils
-from pyqmrlab.abstract import Abstract
+  Typical usage example:
+
+  from pathlib import Path
+  from pyqmrlab.t1 import InversionRecovery
+
+  ir_obj = InversionRecovery()
+  
+  # Download sample dataset
+  ir_obj.download(folder='data/')
+
+  # Load data
+  data_folder = Path('data/')
+  
+  magnitude_data = data_folder / "inversion_recovery/IRData.mat"
+  mask_data = data_folder / "inversion_recovery/Mask.mat"
+  
+  ir_obj.load(magnitude=magnitude_data, Mask = mask_data)
+
+  # Fit data
+  ir_obj.fit()
+
+  # Save to NIFTI
+  ir_obj.save(filename = data_folder / 'T1.nii.gz')
+"""
+
+from pyqmrlab.abstract import *
 
 np.seterr(divide="ignore", invalid="ignore")
 
 
 class InversionRecovery(Abstract):
+    """Inversion recovery (IR) T1 mapping data processing class.
+
+    Fits inversionrecovery T1 mapping data and saves to NIfTI. Demo dataset
+    available for download.
+
+    Attributes:
+        data_url: Link to demo dataset.
+        params: Dictionnary of pulse sequence parameters for each 
+                measurements. Measurement keys: inversion_times (seconds), 
+                repetition_time (seconds).
+    """
+
     IRData = None
     Mask = None
     data_url = "https://osf.io/cmg9z/download?version=3"
@@ -25,6 +58,20 @@ class InversionRecovery(Abstract):
     idx = None
 
     def __init__(self, params=None):
+        """Initializes an InversionRecovery object.
+
+        Assigns inversion recovery T1 mapping pulse sequence parameters to the
+        `params` attribute, or if none are given assigns the parameters to be
+        used with the demo data.
+
+        Args:
+        params: Dictionnary of pulse sequence parameters for each 
+                measurements. Measurement keys: inversion_times (degrees), 
+                repetition_time (seconds).
+
+        Returns:
+            InversionRecovery class object with parameters initialized.
+        """
         if params == None:
             self.params = {
                 "inversion_times": [
@@ -55,9 +102,24 @@ class InversionRecovery(Abstract):
         real=None,
         imaginary=None,
         complex=None,
-        Mask=None,
+        mask=None,
     ):
+        """Load dataset
 
+        Loads an inversion recovery dataset into the class object. Compatible
+        with NIfTI and *.mat filetypes. Data provided can be: magnitude-only,
+        magnitude and phase, real and imaginary, or complex (*.mat only).
+
+        Args:
+        magnitude: Path to magnitude dataset.
+        phase: Path to phase dataset. Phase data is normalized in this method
+                to set the range to -pi and pi.
+        real: Path to real dataset.
+        imaginary: Path to imaginary dataset.
+        complex: Path to complex dataset (*.mat only)
+        mask: Path to binary mask. Optional.
+
+        """
         if magnitude is not None and phase is not None:
             magnitude = Path(magnitude)
             mag_data = self._load_data(magnitude)
@@ -92,9 +154,9 @@ class InversionRecovery(Abstract):
             magnitude = Path(magnitude)
             self._load_data(magnitude, "IRData")
 
-        if Mask is not None:
-            Mask = Path(Mask)
-            mag_data = self._load_data(Mask, "Mask")
+        if mask is not None:
+            Mask = Path(mask)
+            self._load_data(Mask, "Mask")
 
     def save(self, filename=None):
         if filename == None:
@@ -103,7 +165,28 @@ class InversionRecovery(Abstract):
         super().save(self.T1, filename)
 
     def fit(self, model="Barral"):
-        # nonlin- https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html
+        """Fit data from an inversion recovery T1 mapping experiment.
+
+        Generates longitudinal magnetization for the spoiled gradient echo 
+        pulse sequence. All fitting models are compatible with "short" TR
+        pulse sequence protocols (i.e. full recovery is not assumed).
+
+        Args:
+        model: Fitting model. Options: "Barral".
+
+        Implementation details
+        "Barral": Fits the equation a+b*exp(-TI/T1), where a and b will be
+        complex constants if the data is also complex. Repetition time is not
+        used.
+
+        Barral, J.K., Gudmundson, E., Stikov, N., Etezadi‐Amoli, M., Stoica, P.
+        and Nishimura, D.G. (2010), A robust methodology for in vivo T1
+        mapping. Magn. Reson. Med., 64: 1057-1067. doi:10.1002/mrm.22497
+        """
+
+        # Note for future implementations:
+        # Nonlinear - https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html
+
         IRData = self.IRData
 
         NoneType = type(None)
@@ -153,6 +236,16 @@ class InversionRecovery(Abstract):
                 self._apply_mask(**{key: getattr(self, key)})
 
     def _fit_barral(self, data, inversion_times):
+        """T1 fitting algorithm using the Barral method
+
+        The algorithm is an adaptation of Joelle Barral's open-source MATLAB
+        implementation: http://www-mrsrl.stanford.edu/~jbarral/t1map.html
+
+        Reference:
+        Barral, J.K., Gudmundson, E., Stikov, N., Etezadi‐Amoli, M., Stoica, P.
+        and Nishimura, D.G. (2010), A robust methodology for in vivo T1
+        mapping. Magn. Reson. Med., 64: 1057-1067. doi:10.1002/mrm.22497
+        """
         extra = {
             "TI_vec": inversion_times,
             "T1_vec": np.arange(start=0.001, stop=5.001, step=0.001),
@@ -171,6 +264,9 @@ class InversionRecovery(Abstract):
         return T1_est, a_est, b_est, residual, idx
 
     def _get_nls_dict(self, extra):
+        """Define the dictionary for the non-linear least square implementation
+        used in the Barral method.
+        """
         nls_dict = {}
         nls_dict["TI_vec"] = extra["TI_vec"].reshape(-1, 1)
         nls_dict["N_TIs"] = len(nls_dict["TI_vec"])
@@ -196,7 +292,9 @@ class InversionRecovery(Abstract):
         return nls_dict
 
     def _rd_nls(self, data, nls_dict):
-
+        """Reduced-dimension non-linear least squares implementation for the
+        Barral method.
+        """
         if nls_dict["nls_algorithm"] is "grid":
 
             if np.all(np.iscomplex(data)):
@@ -264,7 +362,9 @@ class InversionRecovery(Abstract):
         return T1_est, a_est, b_est, residual, idx
 
     def _calc_nls_estimates(self, data_temp, nls_dict):
-
+        """Calculate the estimates for the non-linear least squares of the
+        Barral implementation.
+        """
         the_exp = nls_dict["the_exp"]
 
         # The sum of the data
@@ -328,6 +428,25 @@ class InversionRecovery(Abstract):
 
     @staticmethod
     def simulate(params, type="analytical"):
+        """Simulates signal for a inversion recovery T1 mapping experiment.
+
+        Generates longitudinal magnetization for the inversion recovery
+        pulse sequence.
+
+        Args:
+        params: Dictionnary of pulse sequence parameters for each 
+                measurements, as well as T1 of ths pins. Parameter keys:
+                excitation_flip_angle (numpy array of angles in degrees),
+                inversion_flip_angle (numpy array of angles in degrees), 
+                repetition_time (seconds), constant (real or complex),
+                T1 (seconds).
+        type: Simulation type. 'analytical': assumes the analytical
+              steady-state solution to the pulse sequence experiment.
+
+        Returns:
+            Mz: numpy array of the longitudinal magnetization for each
+                inversion recovery measurement.
+        """
         if type is "analytical":
             try:
 
