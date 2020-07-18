@@ -53,7 +53,7 @@ class TestCore(object):
         magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
         mask = self.tmpPath / "inversion_recovery/mask.mat"
 
-        ir_obj.load(magnitude=magnitude, mask=mask)
+        ir_obj.load(magnitude=magnitude, Mask=mask)
 
         assert isinstance(ir_obj.IRData, np.ndarray)
         assert isinstance(ir_obj.Mask, np.ndarray)
@@ -205,7 +205,7 @@ class TestCore(object):
         magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
         mask = self.tmpPath / "inversion_recovery/mask.mat"
 
-        ir_obj.load(magnitude=magnitude, mask=mask)
+        ir_obj.load(magnitude=magnitude, Mask=mask)
 
         ir_obj.fit()
 
@@ -284,7 +284,7 @@ class TestCore(object):
         magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
         mask = self.tmpPath / "inversion_recovery/mask.mat"
 
-        ir_obj.load(magnitude=magnitude, mask=mask)
+        ir_obj.load(magnitude=magnitude, Mask=mask)
 
         ir_obj.fit()
 

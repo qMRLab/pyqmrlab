@@ -102,7 +102,7 @@ class InversionRecovery(Abstract):
         real=None,
         imaginary=None,
         complex=None,
-        mask=None,
+        Mask=None,
     ):
         """Load dataset
 
@@ -154,8 +154,8 @@ class InversionRecovery(Abstract):
             magnitude = Path(magnitude)
             self._load_data(magnitude, "IRData")
 
-        if mask is not None:
-            Mask = Path(mask)
+        if Mask is not None:
+            Mask = Path(Mask)
             self._load_data(Mask, "Mask")
 
     def save(self, filename=None):
