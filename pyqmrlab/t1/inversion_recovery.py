@@ -208,7 +208,8 @@ class InversionRecovery(Abstract):
 
             results = {}
             results['T1'] = np.zeros(lin_data.shape[0])
-            if np.iscomplex(IRData).all:
+
+            if np.iscomplex(IRData).any():
                 results['a'] = np.zeros(lin_data.shape[0], dtype="complex_")
                 results['b'] = np.zeros(lin_data.shape[0], dtype="complex_")
             else:
