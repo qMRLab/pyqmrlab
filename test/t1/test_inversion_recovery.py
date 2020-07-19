@@ -40,7 +40,7 @@ class TestCore(object):
         expected_folder = self.tmpPath / "inversion_recovery"
         expected_files = [
             self.tmpPath / "inversion_recovery/IRData.mat",
-            self.tmpPath / "inversion_recovery/mask.mat",
+            self.tmpPath / "inversion_recovery/Mask.mat",
         ]
         assert expected_folder.is_dir()
         for file in expected_files:
@@ -51,7 +51,7 @@ class TestCore(object):
         ir_obj = InversionRecovery()
 
         magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
-        mask = self.tmpPath / "inversion_recovery/mask.mat"
+        mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
         ir_obj.load(magnitude=magnitude, Mask=mask)
 
@@ -203,7 +203,7 @@ class TestCore(object):
         ir_obj = InversionRecovery()
 
         magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
-        mask = self.tmpPath / "inversion_recovery/mask.mat"
+        mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
         ir_obj.load(magnitude=magnitude, Mask=mask)
 
@@ -282,7 +282,7 @@ class TestCore(object):
         ir_obj = InversionRecovery()
 
         magnitude = self.tmpPath / "inversion_recovery/IRData.mat"
-        mask = self.tmpPath / "inversion_recovery/mask.mat"
+        mask = self.tmpPath / "inversion_recovery/Mask.mat"
 
         ir_obj.load(magnitude=magnitude, Mask=mask)
 

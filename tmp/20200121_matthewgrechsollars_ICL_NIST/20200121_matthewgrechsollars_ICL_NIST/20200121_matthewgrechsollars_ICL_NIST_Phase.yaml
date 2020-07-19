@@ -1,0 +1,32 @@
+datatype: "phase" # magnitude, phase, real, imaginary
+
+submitter:
+    contact: "Matthew Grech-Sollars"
+    email: "m.grech-sollars@imperial.ac.uk"
+
+    acquisition: "Ben Statton, Simran Kukran, Matthew Grech-Sollars"
+
+site:
+  name: "Imperial College London"
+  manufacturer: "Siemens"
+  version: "Prisma VE11C"
+  field: 3.0
+
+sample:
+    type: "NIST"
+    version:  130 
+    serial_number: 102 
+    temperature_before_scan: 21.73 # In celsius
+    temperature_after_scan: 22.05 # In celsius
+
+sequence:
+    name: "se_TI50/400/1100/2400"
+    type: "Spin-echo inversion recovery"
+    matrix_size: [256 256 1]
+    resolution: [1 1 2] # in mm
+    dimension: "2D" # 2D or 3D
+    repetition_time: 2550.0 # in ms
+    echo_time: 14.0 #in ms
+    inversion_times: [50, 400, 1100, 2400] #in ms
+    fat_sat: false
+    bandwidth: 130 # Hz/Px
