@@ -82,7 +82,7 @@ class TestCore(object):
         ir_obj.load(magnitude=magnitude, phase=phase)
 
         assert isinstance(ir_obj.IRData, np.ndarray)
-        assert np.iscomplex(ir_obj.IRData).all
+        assert np.iscomplex(ir_obj.IRData).any()
 
     # --------------simulate tests-------------- #
     def test_simulate(self):
@@ -152,7 +152,7 @@ class TestCore(object):
 
         ir_obj.IRData[0, 0, 0, :] = Mz
 
-        assert np.all(np.iscomplex(ir_obj.IRData))
+        assert np.any(np.iscomplex(ir_obj.IRData))
 
         ir_obj.Mask = np.ones((1, 1))
 
@@ -163,8 +163,8 @@ class TestCore(object):
 
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
-        assert np.iscomplex(ir_obj.a).all
-        assert np.iscomplex(ir_obj.b).all
+        assert np.iscomplex(ir_obj.a).any()
+        assert np.iscomplex(ir_obj.b).any()
 
     def test_fit_simulate_3vox(self):
 
@@ -242,8 +242,8 @@ class TestCore(object):
 
         assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
 
-        assert np.iscomplex(ir_obj.a).all
-        assert np.iscomplex(ir_obj.b).all
+        assert np.iscomplex(ir_obj.a).any()
+        assert np.iscomplex(ir_obj.b).any()
 
     def test_fit_complex_real_imaginary(self):
         url_data_mag_phase = "https://osf.io/qnhjt/download/"
@@ -273,8 +273,8 @@ class TestCore(object):
 
         assert actual_median_value == pytest.approx(expected_median_value, abs=0.001)
 
-        assert np.iscomplex(ir_obj.a).all
-        assert np.iscomplex(ir_obj.b).all
+        assert np.iscomplex(ir_obj.a).any()
+        assert np.iscomplex(ir_obj.b).any()
 
     # --------------save tests-------------- #
 
