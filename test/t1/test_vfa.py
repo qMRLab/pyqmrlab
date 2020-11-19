@@ -16,8 +16,8 @@ class TestCore(object):
     @classmethod
     def teardown_class(cls):
         tmpPath = Path("tmp/")
-        shutil.rmtree(tmpPath)
-        pass
+        if tmpPath.exists():
+            shutil.rmtree(tmpPath)
 
     # --------------attribute tests-------------- #
     def test_data_url_link_exists(self):
@@ -31,6 +31,21 @@ class TestCore(object):
             assert int(resp[0]["status"]) < 400
         except Exception:
             pytest.fail("Website not found.")
+
+    # --------------initialization tests-------------- #
+    def test_passed_parameters_are_stored(self):
+        params = {"flip_angle": [1, 2, 3, 4], "repetition_time": 0.030, "T1": 1.1}
+        vfa_obj = VFA(params)
+
+        expected_flip_angle = params['flip_angle']
+        actual_flip_angle = vfa_obj.params['flip_angle']
+
+        assert expected_flip_angle == actual_flip_angle
+
+        expected_repetition_time = params['repetition_time']
+        actual_repetition_time = vfa_obj.params['repetition_time']
+
+        assert expected_repetition_time == actual_repetition_time
 
     # --------------download tests-------------- #
     def test_download(self):
@@ -71,8 +86,8 @@ class TestCore(object):
 
     # --------------simulate tests-------------- #
     def test_simulate(self):
-        vfa_obj = VFA()
         params = {"flip_angle": [3, 20], "repetition_time": 0.015, "T1": 0.850}
+        vfa_obj = VFA(params)
 
         Mz = VFA.simulate(params, "analytical")
 
@@ -83,8 +98,8 @@ class TestCore(object):
 
     # --------------fit tests-------------- #
     def test_fit_simulate_1vox(self):
-        vfa_obj = VFA()
         params = {"flip_angle": [3, 20], "repetition_time": 0.015, "T1": 0.850}
+        vfa_obj = VFA(params)
 
         Mz = VFA.simulate(params, "analytical")
 
@@ -103,8 +118,9 @@ class TestCore(object):
         assert actual_value == pytest.approx(expected_value, abs=0.01)
 
     def test_fit_simulate_3vox(self):
-        vfa_obj = VFA()
         params = {"flip_angle": [3, 20], "repetition_time": 0.015, "T1": 0.850}
+        vfa_obj = VFA(params)
+
         vfa_obj.VFAData = np.ones((3, 1, 1, 2))
         vfa_obj.Mask = np.ones((3, 1))
         vfa_obj.B1map = np.ones((3, 1))
@@ -113,7 +129,7 @@ class TestCore(object):
 
         Mz = VFA.simulate(params, "analytical")
         vfa_obj.VFAData[0, 0, 0, :] = Mz
-
+        
         params["flip_angle"] = np.array([3, 20]) * vfa_obj.B1map[1, 0]
         Mz = VFA.simulate(params, "analytical")
         vfa_obj.VFAData[1, 0, 0, :] = Mz
@@ -128,6 +144,26 @@ class TestCore(object):
         actual_value = vfa_obj.T1
 
         assert np.allclose(actual_value, expected_value)
+
+    def test_fit_simulate_1vox_3_angles(self):
+        params = {"flip_angle": [3, 10, 20], "repetition_time": 0.015, "T1": 0.850}
+        vfa_obj = VFA(params)
+
+        Mz = VFA.simulate(params, "analytical")
+
+        vfa_obj.VFAData = np.ones((1, 1, 1, 3))
+
+        vfa_obj.VFAData[0, 0, 0, :] = Mz
+
+        vfa_obj.B1map = np.ones((1, 1))
+        vfa_obj.Mask = np.ones((1, 1))
+
+        vfa_obj.fit()
+
+        expected_value = params["T1"]
+        actual_value = vfa_obj.T1
+
+        assert actual_value == pytest.approx(expected_value, abs=0.01)
 
     def test_fit(self):
         vfa_obj = VFA()
