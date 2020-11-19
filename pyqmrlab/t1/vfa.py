@@ -7,25 +7,27 @@ different flip angles.
   Typical usage example:
 
   from pathlib import Path
-  from pyqmrlab.b1 import DoubleAngle
+  from pyqmrlab.t1 import VFA
 
-  b1_obj = DoubleAngle()
+  params = {"flip_angle": [3, 20], "repetition_time": 0.015}
+  vfa_obj = VFA(params)
   
   # Download sample dataset
-  b1_obj.download(folder='data/')
+  vfa_obj.download(folder='data/')
 
   # Load data
-  data_folder = Path('data/b1_dam_multi-slice/')
-  b1_obj.load(
-      img1 = data_folder / 'epseg_60deg.nii.gz',
-      img2 = data_folder / 'epseg_120deg.nii.gz',
+
+  vfa_obj.load(
+        VFAData = data_folder / "VFAData.nii.gz",
+        B1map = data_folder / B1map.nii.gz",
+        Mask = data_folder / Mask.nii.gz"
       )
 
   # Fit data
-  b1_obj.fit()
+  vfa_obj.fit()
 
   # Save to NIFTI
-  b1_obj.save(filename = data_folder / 'B1.nii')
+  vfa_obj.save(filename = data_folder / 'T1.nii')
 """
 
 from pyqmrlab.abstract import *
@@ -66,8 +68,14 @@ class VFA(Abstract):
         Returns:
             VFA class object with parameters initialized.
         """
+
         if params == None:
             self.params = {"flip_angle": [3, 20], "repetition_time": 0.015}
+        else:
+            self.params = {
+                "flip_angle": params["flip_angle"],
+                "repetition_time": params["repetition_time"]
+                }
 
     def load(self, VFAData, B1map, Mask=None):
         args = locals()
@@ -91,6 +99,7 @@ class VFA(Abstract):
         dims = vfa_data.shape
         lin_data = np.reshape(vfa_data, (dims[0] * dims[1] * dims[2], dims[3]))
         lin_B1 = np.reshape(B1_map, (dims[0] * dims[1]))
+
         lin_flip_angle = np.tile(flip_angle, (dims[0] * dims[1], 1)) * np.transpose(
             np.tile(lin_B1, (dims[3], 1))
         )
